@@ -8,7 +8,10 @@ class TestPipelineErrors:
     def test_empty_docs_raises(self, temp_data_dir):
         """Pipeline should fail gracefully with empty documents."""
         from app.task_manager import task_manager
+        from app.db import init_db, create_task
+        init_db(":memory:")
         task_id = task_manager.start_task("http://test.com", "sk")
+        create_task("http://test.com", "sk", task_id=task_id)
 
         import asyncio
         asyncio.run(run_evaluation_pipeline(task_id))

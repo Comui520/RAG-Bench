@@ -88,11 +88,12 @@ def init_db(db_path: Optional[str] = None) -> sqlite3.Connection:
     return conn
 
 
-def create_task(rag_base_url: str, rag_api_key: str) -> str:
-    task_id = uuid.uuid4().hex
+def create_task(rag_base_url: str, rag_api_key: str, task_id: Optional[str] = None) -> str:
+    if task_id is None:
+        task_id = uuid.uuid4().hex
     now = datetime.now(timezone.utc).isoformat()
     get_db().execute(
-        "INSERT INTO tasks (id, rag_base_url, rag_api_key, status, created_at) VALUES (?, ?, ?, 'UPLOADING', ?)",
+        "INSERT OR IGNORE INTO tasks (id, rag_base_url, rag_api_key, status, created_at) VALUES (?, ?, ?, 'UPLOADING', ?)",
         (task_id, rag_base_url, rag_api_key, now),
     )
     get_db().commit()

@@ -42,6 +42,8 @@ async def upload_files(files: List[UploadFile] = File(...)):
         rag_base_url="",
         rag_api_key="",
     )
+    # Persist task to DB so FK constraints are satisfied
+    create_task("", "", task_id=task_id)
     ensure_task_dir(task_id)
 
     uploaded = []
@@ -74,9 +76,11 @@ async def start_evaluation(req: EvaluateRequest, background_tasks: BackgroundTas
             raise HTTPException(status_code=404, detail="Task not found")
         state["rag_base_url"] = req.rag_base_url
         state["rag_api_key"] = req.rag_api_key
-        create_task(req.rag_base_url, req.rag_api_key)
+        # Update existing DB task with RAG config
+        update_task_status(task_id, state["status"])
     else:
         task_id = task_manager.start_task(req.rag_base_url, req.rag_api_key)
+        create_task(req.rag_base_url, req.rag_api_key, task_id=task_id)
 
     background_tasks.add_task(run_evaluation_pipeline, task_id)
 

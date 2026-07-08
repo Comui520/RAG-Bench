@@ -3,8 +3,8 @@
 import os
 
 # Evaluation model (used by Synthesizer critic + all metrics)
-# deepseek-v4-flash replaces deepseek-chat (deprecated 2026-07-24)
-EVAL_MODEL_NAME = os.getenv("EVAL_MODEL_NAME", "deepseek-v4-flash")
+# Temporarily using deepseek-chat — reverts to deepseek-v4-flash once deepeval registers it
+EVAL_MODEL_NAME = os.getenv("EVAL_MODEL_NAME", "deepseek-chat")
 EVAL_MODEL_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 EVAL_MODEL_BASE_URL = os.getenv("EVAL_MODEL_BASE_URL", "https://api.deepseek.com")
 
@@ -37,3 +37,6 @@ DATABASE_URL = os.getenv("DATABASE_URL", "rag_eval.db")
 
 # RAG API request timeout
 RAG_API_TIMEOUT_SECONDS = int(os.getenv("RAG_API_TIMEOUT_SECONDS", "30"))
+
+# Model name to use when querying the RAG API (defaults to deepseek-chat for testing)
+RAG_MODEL_NAME = os.getenv("RAG_MODEL_NAME", "deepseek-chat")

@@ -22,7 +22,7 @@ class RAGClient:
         self.api_key = api_key
         self._client = httpx.Client(timeout=RAG_API_TIMEOUT_SECONDS)
 
-    def query(self, question: str, model: str = "default") -> RAGResponse:
+    def query(self, question: str, model: str = "deepseek-chat") -> RAGResponse:
         url = f"{self.base_url}/chat/completions"
         headers = {
             "Authorization": f"Bearer {self.api_key}",

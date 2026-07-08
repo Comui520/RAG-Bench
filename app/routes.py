@@ -3,6 +3,7 @@
 import json
 from typing import List
 
+import asyncio
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 
 from app.db import (
@@ -82,7 +83,13 @@ async def start_evaluation(req: EvaluateRequest, background_tasks: BackgroundTas
         task_id = task_manager.start_task(req.rag_base_url, req.rag_api_key)
         create_task(req.rag_base_url, req.rag_api_key, task_id=task_id)
 
-    background_tasks.add_task(run_evaluation_pipeline, task_id)
+    async def _run():
+        try:
+            await run_evaluation_pipeline(task_id)
+        except Exception as e:
+            import logging
+            logging.getLogger("uvicorn.error").error(f"Pipeline failed: {e}")
+    asyncio.create_task(_run())
 
     return {"task_id": task_id}
 

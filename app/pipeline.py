@@ -28,6 +28,7 @@ from app.config import (
     CHUNK_OVERLAP,
     MAX_GOLDENS_PER_CONTEXT,
     TASK_TIMEOUT_SECONDS,
+    RAG_MODEL_NAME,
 )
 from app.embedder import SiliconFlowEmbeddingModel
 from app.db import (
@@ -168,7 +169,7 @@ async def run_evaluation_pipeline(task_id: str):
 
         for idx, golden in enumerate(goldens_list):
             try:
-                rag_response = rag_client.query(golden["input"])
+                rag_response = rag_client.query(golden["input"], model=RAG_MODEL_NAME)
                 actual_output = rag_response.answer
                 retrieval_context = rag_response.contexts
             except RAGClientError as e:

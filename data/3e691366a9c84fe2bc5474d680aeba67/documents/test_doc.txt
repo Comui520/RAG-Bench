@@ -1,0 +1,25 @@
+WidgetX Product Manual
+
+WidgetX is a revolutionary task management application designed for small teams.
+It features real-time collaboration, Kanban boards, and automated workflow triggers.
+
+Getting Started:
+To begin using WidgetX, create an account at widgetx.example.com. After logging in,
+you can create your first project by clicking the "New Project" button on the dashboard.
+
+Core Features:
+1. Kanban Boards: Organize tasks into columns like "To Do", "In Progress", and "Done".
+   Drag and drop tasks between columns to update their status.
+2. Workflow Automation: Set up triggers that automatically move tasks, send notifications,
+   or update fields when certain conditions are met.
+3. Team Collaboration: Invite team members by email. Assign tasks, leave comments, and
+   track progress together in real time.
+
+Pricing:
+WidgetX offers three tiers: Free (up to 5 users, 3 projects), Pro ($12/user/month),
+and Enterprise (custom pricing with SSO and priority support).
+
+Troubleshooting:
+If tasks are not syncing, check your internet connection and refresh the page.
+For login issues, use the "Forgot Password" link on the login page.
+Contact support@widgetx.example.com for further assistance.

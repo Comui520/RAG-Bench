@@ -12,9 +12,10 @@ interface Props {
   phase: string;
   progress: number;
   status: string;
+  message?: string;
 }
 
-export function ProgressTracker({ phase, progress, status }: Props) {
+export function ProgressTracker({ phase, progress, status, message }: Props) {
   const currentIdx = PHASES.findIndex((p) => p.key === phase);
 
   return (
@@ -25,6 +26,13 @@ export function ProgressTracker({ phase, progress, status }: Props) {
         </div>
         <span className="text-sm text-slate-500">{Math.round(progress * 100)}%</span>
       </div>
+
+      {message && (
+        <p className="text-sm text-slate-600 bg-blue-50 p-3 rounded-md flex items-center gap-2 mt-4">
+          <Loader2 className="w-4 h-4 animate-spin text-blue-500 shrink-0" />
+          {message}
+        </p>
+      )}
 
       <div className="space-y-3">
         {PHASES.map((p, i) => {

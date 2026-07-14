@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RagConfigForm } from '../components/RagConfigForm';
+import { RagConfigForm, type FullConfig } from '../components/RagConfigForm';
 import { FileUploader } from '../components/FileUploader';
 import { api } from '../api/client';
 import { useStartEvaluation } from '../hooks/useApi';
@@ -10,7 +10,7 @@ import { Loader2 } from 'lucide-react';
 
 export function ConfigPage() {
   const navigate = useNavigate();
-  const [ragConfig, setRagConfig] = useState<{ rag_base_url: string; rag_api_key: string } | null>(null);
+  const [fullConfig, setFullConfig] = useState<FullConfig | null>(null);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -30,11 +30,10 @@ export function ConfigPage() {
   }
 
   async function handleStart() {
-    if (!ragConfig || !taskId) return;
+    if (!fullConfig || !taskId) return;
     try {
       await startEval.mutateAsync({
-        rag_base_url: ragConfig.rag_base_url,
-        rag_api_key: ragConfig.rag_api_key,
+        ...fullConfig,
         task_id: taskId,
       });
       navigate(`/task/${taskId}/progress`);
@@ -43,12 +42,12 @@ export function ConfigPage() {
     }
   }
 
-  const canStart = ragConfig && files.length > 0 && taskId;
+  const canStart = fullConfig && files.length > 0 && taskId;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <h2 className="text-2xl font-bold">RAG Evaluation</h2>
-      <RagConfigForm onSubmit={setRagConfig} />
+      <RagConfigForm onSubmit={setFullConfig} />
       <FileUploader onUpload={handleUpload} files={files} disabled={uploading} />
       <button
         className={`w-full py-3 rounded-md text-white font-medium flex items-center justify-center gap-2 ${

@@ -103,11 +103,20 @@ async def run_evaluation_pipeline(task_id: str, eval_config, embed_config, rag_m
             raise ValueError("No documents found for this task.")
 
         synthesizer = Synthesizer(async_mode=False, model=model)
+
+        # Adaptive chunk size: scale down for short documents
+        doc_total_chars = 0
+        for dp in doc_paths:
+            with open(dp, "r", encoding="utf-8", errors="ignore") as f:
+                doc_total_chars += len(f.read())
+        adaptive_chunk = max(100, min(CHUNK_SIZE, max(50, doc_total_chars // 3)))
+        adaptive_overlap = max(10, min(CHUNK_OVERLAP, adaptive_chunk // 4))
+
         context_config = ContextConstructionConfig(
             embedder=embedder,
             critic_model=model,
-            chunk_size=CHUNK_SIZE,
-            chunk_overlap=CHUNK_OVERLAP,
+            chunk_size=adaptive_chunk,
+            chunk_overlap=adaptive_overlap,
         )
 
         task_manager.update_phase(task_id, TaskPhase.GENERATING_GOLDENS, progress=0.2)

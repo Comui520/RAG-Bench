@@ -12,10 +12,11 @@ class TestBuildEvaluationModelV2:
             provider="openai", model_name="gpt-4o",
             api_key="sk-custom", base_url="https://api.openai.com/v1",
         )
-        with patch("app.pipeline.DeepSeekModel") as MockModel:
+        with patch("app.pipeline.CustomOpenAIModel") as MockModel:
             build_evaluation_model(config)
             MockModel.assert_called_once_with(
-                api_key="sk-custom", model="gpt-4o",
+                model_name="gpt-4o",
+                api_key="sk-custom",
                 base_url="https://api.openai.com/v1",
             )
 

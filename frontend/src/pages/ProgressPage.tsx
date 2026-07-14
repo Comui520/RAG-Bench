@@ -10,7 +10,10 @@ export function ProgressPage() {
   const { progress, status } = useTaskSSE(taskId ?? null);
 
   useEffect(() => {
-    if (status === 'COMPLETED') {
+    if (!status) return;
+    if (status === 'AWAITING_CONFIRM') {
+      navigate(`/task/${taskId}/goldens`);
+    } else if (status === 'COMPLETED') {
       const timer = setTimeout(() => navigate(`/task/${taskId}/results`), 2000);
       return () => clearTimeout(timer);
     }

@@ -13,7 +13,13 @@ from app.pipeline import (
 
 class TestBuildEmbedder:
     def test_returns_siliconflow_embedder(self):
-        embedder = build_embedder()
+        from app.models import ModelConfig
+        config = ModelConfig(
+            provider="siliconflow", model_name="BAAI/bge-m3",
+            api_key="sk-test", base_url="https://api.siliconflow.cn/v1",
+        )
+        from app.pipeline import build_embedder
+        embedder = build_embedder(config)
         from app.embedder import SiliconFlowEmbeddingModel
         assert isinstance(embedder, SiliconFlowEmbeddingModel)
 
@@ -41,8 +47,10 @@ class TestCollectMetricScores:
         m2.name = "ContextualRecallMetric"
         m3 = MagicMock(score=0.91, success=True)
         m3.name = "FaithfulnessMetric"
-        fake_result.metrics_data = [m1, m2, m3]
-        fake_result.success = False
+
+        tr = MagicMock()
+        tr.metrics_data = [m1, m2, m3]
+        fake_result.test_results = [tr]
 
         scores, passed = collect_metric_scores(fake_result)
         assert len(scores) == 3

@@ -54,3 +54,12 @@ class SiliconFlowEmbeddingModel(DeepEvalBaseEmbeddingModel):
 
     async def a_embed_texts(self, texts: List[str]) -> List[List[float]]:
         return self.embed_texts(texts)
+
+
+def build_embedder(config):
+    """Build a SiliconFlowEmbeddingModel from a ModelConfig."""
+    return SiliconFlowEmbeddingModel(
+        api_key=config.api_key,
+        model_name=config.model_name,
+        base_url=config.base_url,
+    )

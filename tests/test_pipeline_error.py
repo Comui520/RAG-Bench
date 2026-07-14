@@ -2,6 +2,7 @@
 
 import pytest
 from app.pipeline import run_evaluation_pipeline
+from app.models import ModelConfig
 
 
 class TestPipelineErrors:
@@ -13,8 +14,17 @@ class TestPipelineErrors:
         task_id = task_manager.start_task("http://test.com", "sk")
         create_task("http://test.com", "sk", task_id=task_id)
 
+        eval_config = ModelConfig(
+            provider="deepseek", model_name="deepseek-chat",
+            api_key="sk-test", base_url="https://api.deepseek.com",
+        )
+        embed_config = ModelConfig(
+            provider="siliconflow", model_name="BAAI/bge-m3",
+            api_key="sk-test", base_url="https://api.siliconflow.cn/v1",
+        )
+
         import asyncio
-        asyncio.run(run_evaluation_pipeline(task_id))
+        asyncio.run(run_evaluation_pipeline(task_id, eval_config, embed_config))
 
         state = task_manager.get_state(task_id)
         assert state["status"] == "FAILED"

@@ -19,18 +19,12 @@ from deepeval.metrics import (
 from deepeval.evaluate import evaluate
 
 from app.config import (
-    EVAL_MODEL_NAME,
-    EVAL_MODEL_API_KEY,
-    EMBEDDING_MODEL_NAME,
-    EMBEDDING_API_KEY,
-    EMBEDDING_BASE_URL,
     CHUNK_SIZE,
     CHUNK_OVERLAP,
     MAX_GOLDENS_PER_CONTEXT,
     TASK_TIMEOUT_SECONDS,
-    RAG_MODEL_NAME,
 )
-from app.embedder import SiliconFlowEmbeddingModel
+from app.embedder import build_embedder
 from app.db import (
     create_task,
     update_task_status,
@@ -43,19 +37,12 @@ from app.rag_client import RAGClient, RAGClientError
 from app.task_manager import task_manager, TaskPhase
 
 
-def build_evaluation_model():
-    """Build a DeepSeekModel for evaluation. Takes API key from env/config."""
+def build_evaluation_model(config):
+    """Build a DeepSeekModel from a ModelConfig."""
     return DeepSeekModel(
-        api_key=EVAL_MODEL_API_KEY,
-        model=EVAL_MODEL_NAME,
-    )
-
-
-def build_embedder() -> SiliconFlowEmbeddingModel:
-    return SiliconFlowEmbeddingModel(
-        api_key=EMBEDDING_API_KEY,
-        model_name=EMBEDDING_MODEL_NAME,
-        base_url=EMBEDDING_BASE_URL,
+        api_key=config.api_key,
+        model=config.model_name,
+        base_url=config.base_url,
     )
 
 
@@ -76,12 +63,16 @@ def build_test_case(
 def collect_metric_scores(result) -> Tuple[Dict[str, float], bool]:
     """Extract metric scores from an evaluate() result."""
     scores = {}
-    for md in result.metrics_data:
-        scores[md.name] = md.score
-    return scores, result.success
+    all_passed = True
+    for tr in result.test_results:
+        for md in tr.metrics_data:
+            scores[md.name] = md.score
+            if not md.success:
+                all_passed = False
+    return scores, all_passed
 
 
-async def run_evaluation_pipeline(task_id: str):
+async def run_evaluation_pipeline(task_id: str, eval_config, embed_config, rag_model: str = "deepseek-chat"):
     """Async evaluation pipeline: goldens -> confirm -> evaluate -> results."""
     state = task_manager.get_state(task_id)
     if state is None:
@@ -90,13 +81,17 @@ async def run_evaluation_pipeline(task_id: str):
     rag_base_url = state["rag_base_url"]
     rag_api_key = state["rag_api_key"]
 
+    async def _push(event, data):
+        await task_manager.push_event(task_id, event, data)
+
     try:
         # Phase 1: Generate goldens
         task_manager.update_phase(task_id, TaskPhase.GENERATING_GOLDENS, progress=0.1)
         update_task_status(task_id, "GENERATING_GOLDENS")
+        await _push("progress", {"phase": "GENERATING_GOLDENS", "progress": 0.1, "message": "Initializing models..."})
 
-        model = build_evaluation_model()
-        embedder = build_embedder()
+        model = build_evaluation_model(eval_config)
+        embedder = build_embedder(embed_config)
 
         doc_paths = get_document_paths(task_id)
         if not doc_paths:
@@ -110,7 +105,8 @@ async def run_evaluation_pipeline(task_id: str):
             chunk_overlap=CHUNK_OVERLAP,
         )
 
-        task_manager.update_phase(task_id, TaskPhase.GENERATING_GOLDENS, progress=0.3)
+        task_manager.update_phase(task_id, TaskPhase.GENERATING_GOLDENS, progress=0.2)
+        await _push("progress", {"phase": "GENERATING_GOLDENS", "progress": 0.2, "message": "Building context from documents..."})
 
         goldens = synthesizer.generate_goldens_from_docs(
             document_paths=doc_paths,
@@ -118,26 +114,19 @@ async def run_evaluation_pipeline(task_id: str):
             max_goldens_per_context=MAX_GOLDENS_PER_CONTEXT,
         )
 
-        task_manager.update_phase(task_id, TaskPhase.GENERATING_GOLDENS, progress=0.7)
+        task_manager.update_phase(task_id, TaskPhase.GENERATING_GOLDENS, progress=0.8)
+        await _push("progress", {"phase": "GENERATING_GOLDENS", "progress": 0.8, "message": f"Generated {len(goldens)} goldens"})
 
         if not goldens:
-            raise ValueError(
-                "No goldens were generated. The documents may be too short "
-                "or not contain enough extractable information."
-            )
+            raise ValueError("No goldens were generated.")
 
-        # Save goldens to DB
         for golden in goldens:
             context_json = json.dumps(golden.context) if golden.context else None
-            add_golden(
-                task_id,
-                golden.input,
-                golden.expected_output,
-                context_json,
-            )
+            add_golden(task_id, golden.input, golden.expected_output, context_json)
 
         # Pause for user confirmation
         task_manager.update_phase(task_id, TaskPhase.AWAITING_CONFIRM, progress=1.0)
+        await _push("progress", {"phase": "AWAITING_CONFIRM", "progress": 1.0, "message": "Waiting for your confirmation..."})
 
         confirm_event = task_manager.set_confirmation_event(task_id)
         try:
@@ -145,11 +134,13 @@ async def run_evaluation_pipeline(task_id: str):
         except asyncio.TimeoutError:
             task_manager.mark_failed(task_id, "Timed out waiting for user confirmation.")
             update_task_status(task_id, "FAILED", error_message="Timed out waiting for user confirmation.")
+            await _push("error", {"status": "FAILED", "error": "Timed out waiting for user confirmation."})
             return
 
         # Phase 2: Run evaluation
         task_manager.update_phase(task_id, TaskPhase.RUNNING_EVAL, progress=0.0)
         update_task_status(task_id, "RUNNING_EVAL")
+        await _push("progress", {"phase": "RUNNING_EVAL", "progress": 0.0, "message": "Starting evaluation..."})
 
         goldens_list = get_goldens(task_id)
         total = len(goldens_list)
@@ -169,13 +160,12 @@ async def run_evaluation_pipeline(task_id: str):
 
         for idx, golden in enumerate(goldens_list):
             try:
-                rag_response = rag_client.query(golden["input"], model=RAG_MODEL_NAME)
+                rag_response = rag_client.query(golden["input"], model=rag_model)
                 actual_output = rag_response.answer
                 retrieval_context = rag_response.contexts
             except RAGClientError as e:
                 save_eval_result(
-                    task_id,
-                    golden["id"],
+                    task_id, golden["id"],
                     actual_output=f"ERROR: {e}",
                     retrieval_context="[]",
                     metrics={m.__class__.__name__: 0.0 for m in all_metrics},
@@ -183,6 +173,11 @@ async def run_evaluation_pipeline(task_id: str):
                 )
                 progress = (idx + 1) / total
                 task_manager.update_phase(task_id, TaskPhase.RUNNING_EVAL, progress=progress)
+                await _push("progress", {
+                    "phase": "RUNNING_EVAL", "progress": progress,
+                    "message": f"Evaluation {idx + 1}/{total}: RAG API error",
+                    "current_golden": idx + 1, "total_goldens": total,
+                })
                 continue
 
             test_case = build_test_case(
@@ -192,12 +187,17 @@ async def run_evaluation_pipeline(task_id: str):
                 expected_output=golden["expected_output"],
             )
 
-            eval_results = evaluate([test_case], all_metrics)
-            scores, passed = collect_metric_scores(eval_results[0])
+            await _push("progress", {
+                "phase": "RUNNING_EVAL", "progress": (idx + 0.3) / total,
+                "message": f"Evaluation {idx + 1}/{total}: Running metrics...",
+                "current_golden": idx + 1, "total_goldens": total,
+            })
+
+            eval_result = evaluate([test_case], all_metrics)
+            scores, passed = collect_metric_scores(eval_result)
 
             save_eval_result(
-                task_id,
-                golden["id"],
+                task_id, golden["id"],
                 actual_output=actual_output,
                 retrieval_context=json.dumps(retrieval_context),
                 metrics=scores,
@@ -206,12 +206,19 @@ async def run_evaluation_pipeline(task_id: str):
 
             progress = (idx + 1) / total
             task_manager.update_phase(task_id, TaskPhase.RUNNING_EVAL, progress=progress)
+            await _push("progress", {
+                "phase": "RUNNING_EVAL", "progress": progress,
+                "message": f"Evaluation {idx + 1}/{total} complete",
+                "current_golden": idx + 1, "total_goldens": total,
+            })
 
         rag_client.close()
 
         task_manager.mark_completed(task_id)
         update_task_status(task_id, "COMPLETED")
+        await _push("complete", {"status": "COMPLETED"})
 
     except Exception as e:
         task_manager.mark_failed(task_id, str(e))
         update_task_status(task_id, "FAILED", error_message=str(e))
+        await _push("error", {"status": "FAILED", "error": str(e)})

@@ -11,7 +11,7 @@ interface Props {
 
 export function FileUploader({ onUpload, onRemove, files = [], disabled }: Props) {
   const [dragging, setDragging] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [uploadProgress] = useState<Record<string, number>>({});
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {

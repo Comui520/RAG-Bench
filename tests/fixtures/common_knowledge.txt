@@ -1,0 +1,29 @@
+Common Knowledge Reference
+
+Geography:
+The Amazon River is the largest river by discharge volume in the world, flowing through South America.
+Mount Everest, located in the Himalayas on the border of Nepal and China, is the highest mountain on Earth at 8,848 meters.
+The Sahara Desert in North Africa is the largest hot desert in the world, covering approximately 9.2 million square kilometers.
+Australia is both a country and a continent, with its capital in Canberra and largest city in Sydney.
+
+Science:
+Water freezes at 0 degrees Celsius and boils at 100 degrees Celsius at standard atmospheric pressure.
+The speed of light in a vacuum is approximately 299,792 kilometers per second.
+Photosynthesis is the process by which plants convert sunlight, water, and carbon dioxide into glucose and oxygen.
+The human body has 206 bones, with the femur being the longest and strongest bone.
+
+History:
+World War II lasted from 1939 to 1945 and involved most of the world's nations.
+The first manned moon landing occurred on July 20, 1969, when Apollo 11's Neil Armstrong stepped onto the lunar surface.
+The Industrial Revolution began in Great Britain in the late 18th century and transformed manufacturing and transportation.
+
+Technology:
+The Internet is a global network of interconnected computers that uses the TCP/IP protocol suite.
+Artificial Intelligence refers to computer systems capable of performing tasks that typically require human intelligence.
+Blockchain is a decentralized digital ledger technology that underlies cryptocurrencies like Bitcoin.
+Python is a high-level programming language known for its readability and versatility, created by Guido van Rossum in 1991.
+
+Food and Culture:
+Sushi is a Japanese dish consisting of vinegared rice combined with various ingredients such as raw fish, vegetables, and seaweed.
+Pizza originated in Naples, Italy, and typically consists of a flatbread base topped with tomato sauce, cheese, and various toppings.
+The Olympic Games originated in ancient Greece around 776 BC and were revived in their modern form in 1896.

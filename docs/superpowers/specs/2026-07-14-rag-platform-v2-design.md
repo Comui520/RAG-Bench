@@ -53,9 +53,10 @@ class EvaluateRequest(BaseModel):
 
 ```
 GET /api/models?base_url=https://api.deepseek.com&api_key=sk-xxx
-→ 转发 GET {base_url}/models (OpenAI 兼容)
+→ 转发 GET {base_url}/models (OpenAI 兼容协议)
 → 返回 [{id: "deepseek-chat", ...}, ...]
 → 失败时返回 502 + 错误信息
+→ 非 OpenAI 兼容 API（如 Anthropic）不可用时，前端降级为预设列表 + 手动输入
 ```
 
 **前端** — `RagConfigForm` 拆为三张配置卡片，每张含：

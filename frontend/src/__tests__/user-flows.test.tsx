@@ -18,8 +18,13 @@ describe('User Flows', () => {
     renderWithQueryClient(<App />);
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText(/base url/i), 'https://rag.test.com/v1');
-    await user.type(screen.getByLabelText(/api key/i), 'sk-test');
+    // Fill RAG config using placeholder selectors
+    const ragUrlInput = screen.getByPlaceholderText('https://your-rag-service.com/v1');
+    await user.type(ragUrlInput, 'https://rag.test.com/v1');
+    const keyInputs = screen.getAllByPlaceholderText('sk-...');
+    await user.type(keyInputs[0], 'sk-test');
+    await user.type(keyInputs[1], 'sk-eval');
+    await user.type(keyInputs[2], 'sk-embed');
 
     await user.click(screen.getByRole('button', { name: /save/i }));
     // After saving config, the start button should appear

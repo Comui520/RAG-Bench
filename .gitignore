@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 *.pyo
+*.pyc
 .env
 data/
 *.db
@@ -10,3 +11,9 @@ data/
 node_modules/
 dist/
 .vite/
+frontend/dist/
+frontend/node_modules/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/

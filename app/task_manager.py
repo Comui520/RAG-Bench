@@ -20,6 +20,7 @@ class TaskManager:
     def __init__(self):
         self._tasks: Dict[str, Dict[str, Any]] = {}
         self._events: Dict[str, asyncio.Event] = {}
+        self._queues: dict = {}
 
     def start_task(self, rag_base_url: str, rag_api_key: str) -> str:
         task_id = uuid.uuid4().hex
@@ -79,6 +80,20 @@ class TaskManager:
         event = self._events.get(task_id)
         if event:
             event.set()
+
+
+    def get_queue(self, task_id: str):
+        import asyncio
+        if task_id not in self._queues:
+            self._queues[task_id] = asyncio.Queue()
+        return self._queues[task_id]
+
+    async def push_event(self, task_id: str, event: str, data: dict) -> None:
+        queue = self.get_queue(task_id)
+        await queue.put({"event": event, "data": data})
+
+    def cleanup_queue(self, task_id: str) -> None:
+        self._queues.pop(task_id, None)
 
 
 # Global singleton

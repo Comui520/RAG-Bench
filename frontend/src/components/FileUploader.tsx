@@ -1,15 +1,17 @@
 import { useCallback, useState } from 'react';
-import { Upload, FileText } from 'lucide-react';
+import { Upload, FileText, X } from 'lucide-react';
 import type { UploadedFile } from '../types';
 
 interface Props {
   onUpload: (files: File[]) => Promise<void>;
+  onRemove?: (id: number) => void;
   files?: UploadedFile[];
   disabled?: boolean;
 }
 
-export function FileUploader({ onUpload, files = [], disabled }: Props) {
+export function FileUploader({ onUpload, onRemove, files = [], disabled }: Props) {
   const [dragging, setDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -31,8 +33,8 @@ export function FileUploader({ onUpload, files = [], disabled }: Props) {
   return (
     <div className="border rounded-lg bg-white p-6">
       <div
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-          dragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300'
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+          dragging ? 'border-blue-500 bg-blue-50 scale-[1.02]' : 'border-slate-300'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
@@ -61,10 +63,20 @@ export function FileUploader({ onUpload, files = [], disabled }: Props) {
       {files.length > 0 && (
         <div className="mt-4 space-y-2">
           {files.map((f) => (
-            <div key={f.id} className="flex items-center gap-2 text-sm text-slate-700">
+            <div key={f.id} className="flex items-center gap-2 text-sm text-slate-700 group">
               <FileText className="w-4 h-4 text-slate-400" />
               <span className="flex-1 truncate">{f.filename}</span>
               <span className="text-xs text-slate-400">{(f.file_size / 1024).toFixed(1)} KB</span>
+              {onRemove && (
+                <button onClick={() => onRemove(f.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity p-1" aria-label="Remove file">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              {uploadProgress[f.filename] !== undefined && uploadProgress[f.filename] < 100 && (
+                <div className="w-20 bg-slate-200 rounded-full h-1.5">
+                  <div className="bg-blue-500 h-1.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress[f.filename]}%` }} />
+                </div>
+              )}
             </div>
           ))}
         </div>

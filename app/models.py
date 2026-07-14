@@ -4,9 +4,24 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
+class ModelConfig(BaseModel):
+    """Configuration for an LLM or embedding model."""
+    provider: str = Field(default="custom", description="deepseek|openai|anthropic|siliconflow|custom")
+    model_name: str = Field(..., min_length=1, description="Model identifier")
+    api_key: str = Field(..., min_length=1, description="API key")
+    base_url: str = Field(..., min_length=1, description="API base URL")
+
+
 class EvaluateRequest(BaseModel):
+    # RAG service under test
     rag_base_url: str = Field(..., min_length=1, description="RAG service base URL")
     rag_api_key: str = Field(..., min_length=1, description="RAG service API key")
+    rag_model: str = Field(default="deepseek-chat", description="Model name for RAG queries")
+    # Evaluation model (Synthesizer + metrics)
+    eval_model: Optional[ModelConfig] = Field(default=None, description="LLM for evaluation")
+    # Embedding model (chunking)
+    embed_model: Optional[ModelConfig] = Field(default=None, description="Embedding model")
+    # Existing task
     task_id: Optional[str] = Field(default=None, description="Existing task ID from upload")
 
 
@@ -63,3 +78,8 @@ class UploadedFile(BaseModel):
     id: int
     filename: str
     file_size: int
+
+
+class ModelsResponse(BaseModel):
+    """Response from GET /api/models proxy."""
+    data: List[dict]

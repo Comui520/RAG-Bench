@@ -17,6 +17,7 @@ from deepeval.metrics import (
 )
 from deepeval.evaluate import evaluate
 
+from deepeval.models import DeepSeekModel
 from app.custom_model import CustomOpenAIModel
 
 from app.config import (
@@ -41,9 +42,15 @@ from app.task_manager import task_manager, TaskPhase
 def build_evaluation_model(config):
     """Build a deepeval-compatible LLM from a ModelConfig.
 
-    Uses CustomOpenAIModel (DeepEvalBaseLLM subclass) which supports any
-    OpenAI-compatible API: DeepSeek, OpenAI, SiliconFlow, vLLM, Ollama, etc.
+    Uses DeepSeekModel for DeepSeek (native Synthesizer support),
+    CustomOpenAIModel for all other providers.
     """
+    if config.provider == "deepseek":
+        return DeepSeekModel(
+            api_key=config.api_key,
+            model=config.model_name,
+            base_url=config.base_url,
+        )
     return CustomOpenAIModel(
         model_name=config.model_name,
         api_key=config.api_key,

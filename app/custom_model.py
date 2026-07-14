@@ -5,6 +5,7 @@ Implements DeepEvalBaseLLM so any OpenAI-compatible API
 as the evaluation model in Synthesizer and metrics.
 """
 
+import json
 from typing import Optional, Tuple, Any
 
 import httpx
@@ -90,7 +91,7 @@ class CustomOpenAIModel(DeepEvalBaseLLM):
                 resp = client.post(url, json=body)
                 if resp.status_code == 200:
                     data = resp.json()
-                    return self._parse_response(data)
+                    return self._parse_response(data, schema)
                 elif resp.status_code in (429, 500, 502, 503):
                     import time
                     time.sleep(2 ** attempt)
@@ -116,7 +117,7 @@ class CustomOpenAIModel(DeepEvalBaseLLM):
                 resp = await client.post(url, json=body)
                 if resp.status_code == 200:
                     data = resp.json()
-                    return self._parse_response(data)
+                    return self._parse_response(data, schema)
                 elif resp.status_code in (429, 500, 502, 503):
                     import asyncio
                     await asyncio.sleep(2 ** attempt)
@@ -143,12 +144,18 @@ class CustomOpenAIModel(DeepEvalBaseLLM):
             body["response_format"] = {"type": "json_object"}
         return body
 
-    def _parse_response(self, data: dict) -> Tuple[str, float]:
+    def _parse_response(self, data: dict, schema=None):
         try:
             content = data["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError):
             raise RuntimeError(f"Unexpected API response format: {data}")
-        return str(content), 0.0
+        text = str(content)
+        if schema is not None:
+            parsed = json.loads(text)
+            if hasattr(schema, "model_validate"):
+                return schema.model_validate(parsed), 0.0
+            return parsed, 0.0
+        return text, 0.0
 
     # ── Cleanup ──
 

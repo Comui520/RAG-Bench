@@ -6,7 +6,7 @@ from app.models import ModelConfig
 
 
 class TestBuildEvaluationModelV2:
-    def test_builds_with_custom_config(self):
+    def test_builds_with_custom_config_for_openai(self):
         from app.pipeline import build_evaluation_model
         config = ModelConfig(
             provider="openai", model_name="gpt-4o",
@@ -18,6 +18,20 @@ class TestBuildEvaluationModelV2:
                 model_name="gpt-4o",
                 api_key="sk-custom",
                 base_url="https://api.openai.com/v1",
+            )
+
+    def test_builds_with_deepseek_for_deepseek_provider(self):
+        from app.pipeline import build_evaluation_model
+        config = ModelConfig(
+            provider="deepseek", model_name="deepseek-chat",
+            api_key="sk-ds", base_url="https://api.deepseek.com",
+        )
+        with patch("app.pipeline.DeepSeekModel") as MockModel:
+            build_evaluation_model(config)
+            MockModel.assert_called_once_with(
+                api_key="sk-ds",
+                model="deepseek-chat",
+                base_url="https://api.deepseek.com",
             )
 
 

@@ -31,7 +31,6 @@ class TestBuildEvaluationModelV2:
             MockModel.assert_called_once_with(
                 api_key="sk-ds",
                 model="deepseek-chat",
-                base_url="https://api.deepseek.com",
             )
 
 

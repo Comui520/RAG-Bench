@@ -49,7 +49,6 @@ def build_evaluation_model(config):
         return DeepSeekModel(
             api_key=config.api_key,
             model=config.model_name,
-            base_url=config.base_url,
         )
     return CustomOpenAIModel(
         model_name=config.model_name,

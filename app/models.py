@@ -18,7 +18,7 @@ class EvaluateRequest(BaseModel):
     rag_api_key: str = Field(..., min_length=1, description="RAG service API key")
     rag_model: str = Field(default="deepseek-chat", description="Model name for RAG queries")
     # Evaluation model (Synthesizer + metrics)
-    eval_model: Optional[ModelConfig] = Field(default=None, description="LLM for evaluation")
+    eval_model: ModelConfig = Field(description="LLM for evaluation")
     # Embedding model (chunking)
     embed_model: Optional[ModelConfig] = Field(default=None, description="Embedding model")
     # Existing task

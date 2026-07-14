@@ -1,5 +1,6 @@
 """API tests for evaluate endpoint."""
 
+
 class TestEvaluateEndpoint:
     def test_evaluate_returns_task_id(self, client, test_task_id):
         resp = client.post(
@@ -7,6 +8,10 @@ class TestEvaluateEndpoint:
             json={
                 "rag_base_url": "https://rag.example.com/v1",
                 "rag_api_key": "sk-test-key",
+                "eval_model": {
+                    "provider": "deepseek", "model_name": "deepseek-chat",
+                    "api_key": "sk-eval", "base_url": "https://api.deepseek.com",
+                },
                 "task_id": test_task_id,
             },
         )
@@ -27,6 +32,10 @@ class TestEvaluateEndpoint:
             json={
                 "rag_base_url": "https://rag.example.com/v1",
                 "rag_api_key": "sk-test",
+                "eval_model": {
+                    "provider": "deepseek", "model_name": "deepseek-chat",
+                    "api_key": "sk-eval", "base_url": "https://api.deepseek.com",
+                },
                 "task_id": "nonexistent",
             },
         )

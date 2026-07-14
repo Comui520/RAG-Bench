@@ -1,3 +1,10 @@
+export interface ModelConfig {
+  provider: string;
+  model_name: string;
+  api_key: string;
+  base_url: string;
+}
+
 export interface UploadedFile {
   id: number;
   filename: string;
@@ -12,6 +19,9 @@ export interface UploadResponse {
 export interface EvaluateRequest {
   rag_base_url: string;
   rag_api_key: string;
+  rag_model: string;
+  eval_model: ModelConfig;
+  embed_model: ModelConfig;
   task_id: string;
 }
 

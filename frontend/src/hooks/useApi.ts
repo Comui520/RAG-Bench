@@ -58,3 +58,37 @@ export function useStartEvaluation() {
     },
   });
 }
+
+import { useEffect, useState } from 'react';
+
+export function useTaskSSE(taskId: string | null) {
+  const [progress, setProgress] = useState<{
+    phase: string; progress: number; message: string; error?: string;
+  } | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!taskId) return;
+    const es = new EventSource(`http://localhost:8000/api/task/${taskId}/stream`);
+    es.addEventListener('progress', (e: MessageEvent) => {
+      const data = JSON.parse(e.data);
+      setProgress(data);
+      setStatus(data.phase || data.status);
+    });
+    es.addEventListener('complete', (e: MessageEvent) => {
+      const data = JSON.parse(e.data);
+      setStatus(data.status);
+      es.close();
+    });
+    es.addEventListener('error', (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        setProgress((prev) => prev ? { ...prev, error: data.error } : null);
+        setStatus('FAILED');
+      } catch { /* connection error, EventSource auto-reconnects */ }
+    });
+    return () => es.close();
+  }, [taskId]);
+
+  return { progress, status };
+}

@@ -1,10 +1,13 @@
 """FastAPI route handlers."""
 
-import json
+import json as json_mod
+import asyncio as _asyncio
 from typing import List
 
+import httpx
 import asyncio
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi.responses import StreamingResponse
 
 from app.db import (
     init_db,
@@ -32,6 +35,28 @@ from app.task_manager import task_manager, TaskPhase
 from app.pipeline import run_evaluation_pipeline
 
 router = APIRouter(prefix="/api")
+
+
+@router.get("/models")
+async def list_models(base_url: str, api_key: str):
+    """Proxy to fetch available models from an OpenAI-compatible API."""
+    url = base_url.rstrip("/") + "/models"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10) as http_client:
+            resp = await http_client.get(url, headers=headers)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+    if resp.status_code != 200:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Upstream returned {resp.status_code}: {resp.text[:300]}",
+        )
+    return resp.json()
 
 
 @router.post("/upload")
@@ -102,6 +127,41 @@ async def get_task_status(task_id: str):
     return TaskStatus(**state).model_dump()
 
 
+@router.get("/task/{task_id}/stream")
+async def stream_task_progress(task_id: str):
+    """SSE endpoint: streams real-time task progress events."""
+    state = task_manager.get_state(task_id)
+    if state is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    queue = task_manager.get_queue(task_id)
+
+    async def event_generator():
+        current = task_manager.get_state(task_id)
+        if current:
+            yield f"event: progress\ndata: {json_mod.dumps(current)}\n\n"
+
+        try:
+            while True:
+                event = await _asyncio.wait_for(queue.get(), timeout=30)
+                event_type = event.get("event", "progress")
+                yield f"event: {event_type}\ndata: {json_mod.dumps(event['data'])}\n\n"
+                if event_type in ("complete", "error"):
+                    break
+        except _asyncio.TimeoutError:
+            yield f"event: error\ndata: {{\"error\": \"Stream timeout\"}}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @router.get("/goldens/{task_id}")
 async def list_goldens(task_id: str):
     goldens = get_goldens(task_id)
@@ -142,7 +202,7 @@ async def get_results(task_id: str):
     all_metric_names = set()
 
     for r in results:
-        metrics_json = json.loads(r["metrics_json"]) if isinstance(r["metrics_json"], str) else r["metrics_json"]
+        metrics_json = json_mod.loads(r["metrics_json"]) if isinstance(r["metrics_json"], str) else r["metrics_json"]
         metric_scores = [
             MetricScore(name=k, score=v, passed=v >= 0.5)
             for k, v in metrics_json.items()

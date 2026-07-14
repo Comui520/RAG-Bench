@@ -2,7 +2,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useGoldens, useConfirmGoldens } from '../hooks/useApi';
 import { GoldenCard } from '../components/GoldenCard';
 import { ConfirmButton } from '../components/ConfirmButton';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function GoldensPage() {
   const { taskId } = useParams<{ taskId: string }>();
@@ -12,11 +13,20 @@ export function GoldensPage() {
 
   async function handleConfirm() {
     if (!taskId) return;
-    await confirm.mutateAsync(taskId);
-    navigate(`/task/${taskId}/progress`);
+    try {
+      await confirm.mutateAsync(taskId);
+      navigate(`/task/${taskId}/progress`);
+    } catch {
+      toast.error('Failed to confirm goldens');
+    }
   }
 
-  if (isLoading) return <p className="text-center text-slate-500 py-8">Loading goldens...</p>;
+  if (isLoading) return (
+    <div className="flex items-center justify-center py-8 gap-2 text-slate-500">
+      <Loader2 className="w-5 h-5 animate-spin" />
+      <span>Loading goldens...</span>
+    </div>
+  );
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

@@ -5,6 +5,7 @@ import { FileUploader } from '../components/FileUploader';
 import { api } from '../api/client';
 import { useStartEvaluation } from '../hooks/useApi';
 import type { UploadedFile } from '../types';
+import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 export function ConfigPage() {
@@ -22,7 +23,7 @@ export function ConfigPage() {
       setFiles(resp.files);
       setTaskId(resp.task_id);
     } catch (err) {
-      alert(`Upload failed: ${err}`);
+      toast.error(`Upload failed: ${err}`);
     } finally {
       setUploading(false);
     }
@@ -38,7 +39,7 @@ export function ConfigPage() {
       });
       navigate(`/task/${taskId}/progress`);
     } catch (err) {
-      alert(`Failed to start evaluation: ${err}`);
+      toast.error(`Failed to start evaluation: ${err}`);
     }
   }
 

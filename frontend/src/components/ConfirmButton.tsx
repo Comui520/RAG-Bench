@@ -10,7 +10,7 @@ interface Props {
 export function ConfirmButton({ onClick, loading, disabled, goldensCount }: Props) {
   return (
     <button
-      className={`w-full py-3 rounded-md text-white font-medium flex items-center justify-center gap-2 ${
+      className={`w-full py-3 rounded-md text-white font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform ${
         disabled || loading || goldensCount === 0 ? 'bg-slate-300 cursor-not-allowed' : 'bg-slate-900 hover:bg-slate-800'
       }`}
       onClick={onClick}

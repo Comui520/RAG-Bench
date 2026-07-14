@@ -3,13 +3,34 @@ import { useResults } from '../hooks/useApi';
 import { ScoreCard } from '../components/ScoreCard';
 import { MetricsRadarChart } from '../components/MetricsRadarChart';
 import { DetailTable } from '../components/DetailTable';
+import { Loader2, RefreshCw } from 'lucide-react';
 
 export function ResultsPage() {
   const { taskId } = useParams<{ taskId: string }>();
   const { data: results, isLoading } = useResults(taskId ?? null);
 
-  if (isLoading || !results) {
-    return <p className="text-center text-slate-500 py-8">Loading results...</p>;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8 gap-2 text-slate-500">
+        <Loader2 className="w-5 h-5 animate-spin" />
+        <span>Loading results...</span>
+      </div>
+    );
+  }
+
+  if (!results) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 gap-4 text-slate-500">
+        <p className="text-lg">Failed to load evaluation results.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (

@@ -73,15 +73,17 @@ export function ModelSelector({ label, value, onChange }: Props) {
           <option value="custom">Custom</option>
         </select>
       </div>
-      <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">Base URL</label>
-        <input
-          className="w-full border rounded-md px-3 py-2 text-sm"
-          placeholder="https://api.example.com/v1"
-          value={value.base_url}
-          onChange={(e) => update({ base_url: e.target.value })}
-        />
-      </div>
+      {value.provider === 'custom' && (
+        <div>
+          <label className="block text-xs font-medium text-slate-500 mb-1">Base URL</label>
+          <input
+            className="w-full border rounded-md px-3 py-2 text-sm"
+            placeholder="https://api.example.com/v1"
+            value={value.base_url}
+            onChange={(e) => update({ base_url: e.target.value })}
+          />
+        </div>
+      )}
       <div>
         <label className="block text-xs font-medium text-slate-500 mb-1">API Key</label>
         <div className="relative">

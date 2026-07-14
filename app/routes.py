@@ -1,5 +1,6 @@
 """FastAPI route handlers."""
 
+import os
 import json as json_mod
 import asyncio as _asyncio
 from typing import List
@@ -23,6 +24,7 @@ from app.db import (
 from app.storage import save_uploaded_file, ensure_task_dir
 from app.models import (
     EvaluateRequest,
+    ModelConfig,
     TaskStatus,
     GoldenItem,
     MetricScore,
@@ -93,24 +95,47 @@ async def upload_files(files: List[UploadFile] = File(...)):
 
 
 @router.post("/evaluate")
-async def start_evaluation(req: EvaluateRequest, background_tasks: BackgroundTasks):
+async def start_evaluation(req: EvaluateRequest):
     task_id = req.task_id
 
     if task_id:
         state = task_manager.get_state(task_id)
         if state is None:
             raise HTTPException(status_code=404, detail="Task not found")
+
+        # Prevent duplicate submissions: task is already in the pipeline
+        if state["status"] != "UPLOADING":
+            raise HTTPException(
+                status_code=409,
+                detail=f"Task is already running (current: {state['status']})",
+            )
+
         state["rag_base_url"] = req.rag_base_url
         state["rag_api_key"] = req.rag_api_key
-        # Update existing DB task with RAG config
-        update_task_status(task_id, state["status"])
+        # Sync status to DB; ignore if DB is already in terminal state
+        try:
+            update_task_status(task_id, state["status"])
+        except ValueError:
+            pass
     else:
         task_id = task_manager.start_task(req.rag_base_url, req.rag_api_key)
         create_task(req.rag_base_url, req.rag_api_key, task_id=task_id)
 
+    # Use defaults if model configs not provided
+    eval_config = req.eval_model or ModelConfig.model_construct(
+        provider="deepseek", model_name="deepseek-chat",
+        api_key=os.getenv("DEEPSEEK_API_KEY", ""),
+        base_url="https://api.deepseek.com",
+    )
+    embed_config = req.embed_model or ModelConfig.model_construct(
+        provider="siliconflow", model_name="BAAI/bge-m3",
+        api_key=os.getenv("EMBEDDING_API_KEY", ""),
+        base_url="https://api.siliconflow.cn/v1",
+    )
+
     async def _run():
         try:
-            await run_evaluation_pipeline(task_id)
+            await run_evaluation_pipeline(task_id, eval_config, embed_config, req.rag_model)
         except Exception as e:
             import logging
             logging.getLogger("uvicorn.error").error(f"Pipeline failed: {e}")

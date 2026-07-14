@@ -37,14 +37,15 @@ def save_uploaded_file(task_id: str, filename: str, content: bytes) -> str:
         counter += 1
 
     dest.write_bytes(content)
-    return str(dest)
+    return dest.as_posix()
 
 
 def get_document_paths(task_id: str) -> List[str]:
     docs_dir = ensure_task_dir(task_id) / "documents"
     if not docs_dir.exists():
         return []
-    return sorted(str(p) for p in docs_dir.iterdir() if p.is_file())
+    # Use forward slashes to avoid Windows backslash escape issues
+    return sorted(p.as_posix() for p in docs_dir.iterdir() if p.is_file())
 
 
 def delete_task_data(task_id: str) -> None:

@@ -10,6 +10,7 @@ from app.config import RAG_API_TIMEOUT_SECONDS
 class RAGResponse:
     answer: str
     contexts: List[str] = field(default_factory=list)
+    warning: Optional[str] = None
 
 
 class RAGClientError(Exception):
@@ -53,14 +54,37 @@ class RAGClient:
             choice = data["choices"][0]
             message = choice.get("message", {})
             answer = message.get("content", "")
-            contexts = message.get("contexts", [])
         except (KeyError, IndexError, TypeError) as e:
             raise RAGClientError(f"Failed to parse RAG API response: {e}")
 
-        if not isinstance(contexts, list):
-            contexts = []
+        # 检索依据（contexts）多格式探测，兼容主流 RAG 服务：
+        #   1. message.contexts      —— mini_rag / 部分 RAG 网关自定义字段
+        #   2. message.citations     —— 部分 OpenAI 兼容服务
+        #   3. 顶层 contexts/context —— 部分服务把依据放顶层
+        contexts = []
+        if isinstance(message.get("contexts"), list):
+            contexts = message["contexts"]
+        elif isinstance(message.get("citations"), list):
+            contexts = [c.get("text") or c.get("content") or str(c) for c in message["citations"]]
+        elif isinstance(data.get("contexts"), list):
+            contexts = data["contexts"]
+        elif isinstance(data.get("context"), list):
+            contexts = data["context"]
 
-        return RAGResponse(answer=answer, contexts=contexts)
+        # 字符串形式的 contexts 也容错
+        if isinstance(contexts, str):
+            contexts = [contexts]
+        contexts = [c for c in contexts if isinstance(c, str) and c.strip()]
+
+        warning = None
+        if not contexts:
+            warning = (
+                "RAG 服务未返回检索依据（contexts/citations 字段）。"
+                "检索类指标（Contextual Relevancy/Recall/Precision）将无法正确评分；"
+                "请确认 RAG 服务在响应中携带依据片段，或自定义字段名。"
+            )
+
+        return RAGResponse(answer=answer, contexts=contexts, warning=warning)
 
     def close(self):
         self._client.close()

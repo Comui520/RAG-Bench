@@ -83,3 +83,41 @@ class TestRAGClient:
         result = client.query("q")
         assert result.answer == "Answer only."
         assert result.contexts == []
+        assert result.warning is not None
+
+    def test_extracts_contexts_from_citations_field(self, httpx_mock):
+        """部分 OpenAI 兼容服务把依据放在 message.citations。"""
+        httpx_mock.add_response(
+            method="POST",
+            url="https://rag.example.com/v1/chat/completions",
+            json={
+                "choices": [{
+                    "message": {
+                        "content": "Answer.",
+                        "citations": [
+                            {"text": "chunk A"},
+                            {"content": "chunk B"},
+                        ],
+                    }
+                }]
+            },
+        )
+        client = RAGClient(base_url="https://rag.example.com/v1", api_key="sk")
+        result = client.query("q")
+        assert result.contexts == ["chunk A", "chunk B"]
+        assert result.warning is None
+
+    def test_extracts_contexts_from_top_level(self, httpx_mock):
+        """部分 RAG 服务把依据放在响应顶层 contexts/context。"""
+        httpx_mock.add_response(
+            method="POST",
+            url="https://rag.example.com/v1/chat/completions",
+            json={
+                "choices": [{"message": {"content": "Answer."}}],
+                "contexts": ["top-level chunk"],
+            },
+        )
+        client = RAGClient(base_url="https://rag.example.com/v1", api_key="sk")
+        result = client.query("q")
+        assert result.contexts == ["top-level chunk"]
+        assert result.warning is None

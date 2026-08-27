@@ -172,6 +172,7 @@ async def run_evaluation_pipeline(task_id: str, eval_config, embed_config, rag_m
         total = len(goldens_list)
 
         rag_client = RAGClient(base_url=rag_base_url, api_key=rag_api_key)
+        rag_warning_sent = False
 
         retriever_metrics = [
             ContextualRelevancyMetric(model=model),
@@ -189,6 +190,12 @@ async def run_evaluation_pipeline(task_id: str, eval_config, embed_config, rag_m
                 rag_response = rag_client.query(golden["input"], model=rag_model)
                 actual_output = rag_response.answer
                 retrieval_context = rag_response.contexts
+                if rag_response.warning and not rag_warning_sent:
+                    rag_warning_sent = True
+                    await _push("warning", {
+                        "phase": "RUNNING_EVAL",
+                        "message": rag_response.warning,
+                    })
             except RAGClientError as e:
                 save_eval_result(
                     task_id, golden["id"],

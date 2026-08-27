@@ -1,5 +1,6 @@
 export interface ModelConfig {
   provider: string;
+  api_format: string;
   model_name: string;
   api_key: string;
   base_url: string;

@@ -18,6 +18,7 @@ class TestBuildEvaluationModelV2:
                 model_name="gpt-4o",
                 api_key="sk-custom",
                 base_url="https://api.openai.com/v1",
+                api_format="openai_chat",
             )
 
     def test_builds_with_deepseek_for_deepseek_provider(self):
@@ -38,6 +39,7 @@ class TestBuildEvaluationModelV2:
                 model_name="deepseek-chat",
                 api_key="sk-ds",
                 base_url="https://api.deepseek.com",
+                api_format="openai_chat",
             )
 
 

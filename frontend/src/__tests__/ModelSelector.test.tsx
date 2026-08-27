@@ -6,7 +6,7 @@ import { ModelSelector } from '../components/ModelSelector';
 
 describe('ModelSelector', () => {
   const defaultConfig = {
-    provider: 'deepseek', model_name: 'deepseek-chat',
+    provider: 'deepseek', api_format: 'openai_chat', model_name: 'deepseek-chat',
     api_key: '', base_url: 'https://api.deepseek.com',
   };
 
@@ -19,8 +19,8 @@ describe('ModelSelector', () => {
   it('auto-fills base_url when provider changes', async () => {
     const onChange = vi.fn();
     renderWithProviders(<ModelSelector label="Test" value={{ ...defaultConfig, provider: 'custom', base_url: '' }} onChange={onChange} />);
-    await userEvent.selectOptions(screen.getByRole('combobox'), 'openai');
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ provider: 'openai', base_url: 'https://api.openai.com/v1' }));
+    await userEvent.selectOptions(screen.getAllByRole('combobox')[0], 'openai');
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ provider: 'openai', base_url: 'https://api.openai.com/v1', api_format: 'openai_json' }));
   });
 
   it('has password visibility toggle', async () => {

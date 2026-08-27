@@ -61,8 +61,9 @@ def mock_chat():
         return comp
 
     with patch("openai.resources.chat.completions.completions.Completions.create", return_value=_fake_response()) as sync_post, \
-         patch("openai.resources.chat.completions.completions.AsyncCompletions.create", new_callable=AsyncMock, return_value=_fake_response()) as async_post:
-        yield sync_post, async_post
+         patch("openai.resources.chat.completions.completions.AsyncCompletions.create", new_callable=AsyncMock, return_value=_fake_response()) as async_post, \
+         patch("openai.resources.responses.responses.Responses.create", new_callable=AsyncMock, return_value=MagicMock(output_text=json.dumps(_SUPERSET, ensure_ascii=False))) as json_post:
+        yield sync_post, async_post, json_post
 
 
 # ── 1. Synthesizer 私有路径（#2885 现场）────────────────────

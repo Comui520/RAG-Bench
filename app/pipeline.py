@@ -41,7 +41,11 @@ from app.task_manager import task_manager, TaskPhase
 def build_evaluation_model(config):
     """Build a deepeval-compatible LLM from a ModelConfig.
 
-    统一使用 CustomOpenAIModel（OpenAI 兼容协议），DeepSeek 官方 API 同样兼容。
+    统一使用 CustomOpenAIModel，按 config.api_format 选择协议适配层：
+      openai_chat → OpenAI Chat Completions（response_format=json_object 降级）
+      openai_json → OpenAI Responses API（text.format.type=json_object）
+      anthropic   → Anthropic Messages API（提示词 + 容错解析）
+    DeepSeek 官方 API 兼容 OpenAI 协议，同样走 openai_chat。
     修复前 DeepSeek 走原生 DeepSeekModel（native 路径）、其他 provider 走
     CustomOpenAIModel（返回元组导致 Synthesizer 静默 0 条）；现在 CustomOpenAIModel
     返回单值，所有 provider 的 Synthesizer + 指标路径完全一致（#2885 适配）。
@@ -50,6 +54,7 @@ def build_evaluation_model(config):
         model_name=config.model_name,
         api_key=config.api_key,
         base_url=config.base_url,
+        api_format=getattr(config, "api_format", "openai_chat"),
     )
 
 

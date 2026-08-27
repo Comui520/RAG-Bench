@@ -123,12 +123,12 @@ async def start_evaluation(req: EvaluateRequest):
 
     # Use defaults if model configs not provided
     eval_config = req.eval_model or ModelConfig.model_construct(
-        provider="deepseek", model_name="deepseek-chat",
+        provider="deepseek", api_format="openai_chat", model_name="deepseek-chat",
         api_key=os.getenv("DEEPSEEK_API_KEY", ""),
         base_url="https://api.deepseek.com",
     )
     embed_config = req.embed_model or ModelConfig.model_construct(
-        provider="siliconflow", model_name="BAAI/bge-m3",
+        provider="siliconflow", api_format="openai_chat", model_name="BAAI/bge-m3",
         api_key=os.getenv("EMBEDDING_API_KEY", ""),
         base_url="https://api.siliconflow.cn/v1",
     )

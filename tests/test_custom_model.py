@@ -139,6 +139,28 @@ class TestCustomOpenAIModel:
             assert bodies[0].get("response_format") is not None
             assert bodies[1].get("response_format") is None
 
+    def test_schema_plain_text_fallback_retries_with_json_suffix(self):
+        """模型返回非 JSON 纯文本（evolution 类 prompt 场景）→ 追加 JSON 指令后缀重试。"""
+        from pydantic import BaseModel
+
+        class Response(BaseModel):
+            response: str
+
+        m = _make_model(max_retries=2)
+        cl = m.load_model()
+        plain = _completion("What is the meaning of life?")
+        json_ok = _completion('{"response": "42"}')
+        with patch.object(cl.chat.completions, "create", side_effect=[plain, json_ok]) as mock_create:
+            result = m.generate("Evolve this question", schema=Response)
+            assert result.response == "42"
+            assert mock_create.call_count == 2
+            # 第一次：带 response_format；第二次：无 response_format + 追加 JSON 指令
+            first = mock_create.call_args_list[0].kwargs
+            second = mock_create.call_args_list[1].kwargs
+            assert first.get("response_format") == {"type": "json_object"}
+            assert "response_format" not in second
+            assert 'single key "response"' in second["messages"][0]["content"]
+
     def test_custom_base_url_is_used(self):
         from openai import OpenAI
         m = _make_model(base_url="http://localhost:11434/v1")

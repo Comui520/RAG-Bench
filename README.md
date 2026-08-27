@@ -103,15 +103,27 @@ Frontend (React + TS)  ←→  Backend (FastAPI)  ←→  deepeval (Synthesizer 
 
 ## Supported Model Providers
 
-**All three model slots (RAG-under-test, evaluation LLM, embedding) are fully user-configurable** in the frontend: provider preset + base URL + API key + model name. Any OpenAI-compatible endpoint works.
+**All three model slots (RAG-under-test, evaluation LLM, embedding) are fully user-configurable** in the frontend: provider preset + API format + base URL + API key + model name.
+
+### API Format Selection
+
+The **evaluation LLM** (`CustomOpenAIModel`) supports three wire protocols, selectable in the `ModelSelector` dropdown. This matters because not every endpoint speaks OpenAI Chat Completions:
+
+| `api_format` | Protocol | Endpoint | JSON output | Use for |
+|--------------|----------|----------|-------------|---------|
+| `openai_chat` (default) | OpenAI Chat Completions | `POST {base}/chat/completions` | `response_format=json_object` + fallback | DeepSeek, SiliconFlow, vLLM, llama.cpp, LM Studio, Ollama, any OpenAI-compatible proxy — **works with every local server** |
+| `openai_json` | OpenAI Responses API | `POST {base}/responses` | `text.format.type=json_object` | Modern OpenAI API (`gpt-*`); *not* supported by most local OpenAI-compatible servers (see microsoft/amplifier#246) |
+| `anthropic` | Anthropic Messages API | `POST {base}/messages` | prompt instruction + tolerant JSON parse + retry | Anthropic Claude, and proxies that expose `/v1/messages` |
+
+The **embedding** model always speaks OpenAI-compatible `POST {base}/embeddings` (Anthropic / Responses have no embedding endpoints), so its selector hides the format dropdown.
 
 | Provider | Evaluation LLM | Embedding | Notes |
 |----------|---------------|-----------|-------|
-| DeepSeek | `CustomOpenAIModel` (OpenAI-compatible) | — | api.deepseek.com |
-| OpenAI | `CustomOpenAIModel` | any | |
-| SiliconFlow | `CustomOpenAIModel` | `OpenAICompatibleEmbeddingModel` | BAAI/bge-m3 recommended |
-| vLLM / Ollama / 本地 | `CustomOpenAIModel` | any OpenAI-compatible | point base_url at the local server |
-| Anthropic | Not supported | — | non-OpenAI protocol |
+| DeepSeek | `CustomOpenAIModel` (`openai_chat`) | — | api.deepseek.com |
+| OpenAI | `CustomOpenAIModel` (`openai_json`) | any | |
+| SiliconFlow | `CustomOpenAIModel` (`openai_chat`) | `OpenAICompatibleEmbeddingModel` | BAAI/bge-m3 recommended |
+| vLLM / Ollama / 本地 | `CustomOpenAIModel` (`openai_chat`) | any OpenAI-compatible | point base_url at the local server |
+| Anthropic | `CustomOpenAIModel` (`anthropic`) | — | `x-api-key` + `anthropic-version` headers |
 
 ## Known Issues
 
@@ -146,11 +158,11 @@ rag-llm-test/
 ├── app/
 │   ├── main.py              # FastAPI entry point
 │   ├── config.py             # Infrastructure config (chunk size, timeouts, paths)
-│   ├── models.py             # Pydantic request/response schemas
+│   ├── models.py             # Pydantic request/response schemas (ModelConfig + api_format)
 │   ├── db.py                 # SQLite CRUD operations
 │   ├── storage.py            # File storage (./data/{task_id}/)
 │   ├── embedder.py           # OpenAI-compatible embedding adapter (any /embeddings endpoint)
-│   ├── custom_model.py       # CustomOpenAIModel (DeepEvalBaseLLM subclass, single-value contract)
+│   ├── custom_model.py       # CustomOpenAIModel: openai_chat / openai_json / anthropic adapters
 │   ├── rag_client.py         # OpenAI-compatible RAG API client
 │   ├── task_manager.py       # In-memory task state + SSE event queues
 │   ├── pipeline.py           # Core evaluation pipeline
@@ -165,6 +177,8 @@ rag-llm-test/
 │   ├── test_pipeline.py      # Pipeline unit tests
 │   ├── test_pipeline_v2.py   # Pipeline v2 (dynamic models) tests
 │   ├── test_custom_model.py  # CustomOpenAIModel tests (no API key)
+│   ├── test_custom_model_responses.py  # OpenAI Responses API adapter tests
+│   ├── test_custom_model_anthropic.py  # Anthropic Messages API adapter tests
 │   ├── test_custom_model_synthesizer.py  # Synthesizer + 5 metrics offline
 │   ├── test_api_*.py         # API integration tests (6 files)
 │   ├── test_pipeline_error.py    # Pipeline error handling
@@ -180,6 +194,9 @@ rag-llm-test/
 │       ├── mocks/            # MSW handlers + fixtures
 │       └── __tests__/        # 10 test files, 22 tests
 ├── mini_rag.py               # Test RAG service (port 8001)
+├── scripts/
+│   ├── smoke_real_eval.py    # Real-API smoke (DeepSeek + SiliconFlow)
+│   └── smoke_formats_e2e.py  # Offline 3-protocol E2E (local mock server)
 ├── requirements.txt
 ├── pyproject.toml
 └── docs/

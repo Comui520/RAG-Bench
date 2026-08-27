@@ -14,12 +14,12 @@ interface Props {
 }
 
 const DEFAULT_EVAL: ModelConfig = {
-  provider: 'deepseek', model_name: 'deepseek-chat',
+  provider: 'deepseek', api_format: 'openai_chat', model_name: 'deepseek-chat',
   api_key: '', base_url: 'https://api.deepseek.com',
 };
 
 const DEFAULT_EMBED: ModelConfig = {
-  provider: 'siliconflow', model_name: 'BAAI/bge-m3',
+  provider: 'siliconflow', api_format: 'openai_chat', model_name: 'BAAI/bge-m3',
   api_key: '', base_url: 'https://api.siliconflow.cn/v1',
 };
 

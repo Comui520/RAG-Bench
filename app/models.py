@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 class ModelConfig(BaseModel):
     """Configuration for an LLM or embedding model."""
     provider: str = Field(default="custom", description="deepseek|openai|anthropic|siliconflow|custom")
+    api_format: str = Field(default="openai_chat", description="openai_chat|openai_json|anthropic")
     model_name: str = Field(..., min_length=1, description="Model identifier")
     api_key: str = Field(..., min_length=1, description="API key")
     base_url: str = Field(..., min_length=1, description="API base URL")

@@ -5,6 +5,7 @@ import { API_BASE } from '../api/client';
 
 export interface ModelConfig {
   provider: string;
+  api_format: string;
   model_name: string;
   api_key: string;
   base_url: string;
@@ -14,17 +15,24 @@ interface Props {
   label: string;
   value: ModelConfig;
   onChange: (config: ModelConfig) => void;
+  showApiFormat?: boolean;
 }
 
-const PROVIDERS: Record<string, { base_url: string; models: string[] }> = {
-  deepseek: { base_url: 'https://api.deepseek.com', models: ['deepseek-chat', 'deepseek-v4-flash', 'deepseek-v4-pro'] },
-  openai: { base_url: 'https://api.openai.com/v1', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1'] },
-  anthropic: { base_url: 'https://api.anthropic.com', models: ['claude-sonnet-4-6', 'claude-opus-4-8'] },
-  siliconflow: { base_url: 'https://api.siliconflow.cn/v1', models: ['BAAI/bge-m3', 'Pro/BAAI/bge-m3', 'Qwen/Qwen2.5-7B-Instruct'] },
-  custom: { base_url: '', models: [] },
+const PROVIDERS: Record<string, { base_url: string; models: string[]; api_format: string }> = {
+  deepseek: { base_url: 'https://api.deepseek.com', models: ['deepseek-chat', 'deepseek-v4-flash', 'deepseek-v4-pro'], api_format: 'openai_chat' },
+  openai: { base_url: 'https://api.openai.com/v1', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1'], api_format: 'openai_json' },
+  anthropic: { base_url: 'https://api.anthropic.com', models: ['claude-sonnet-4-6', 'claude-opus-4-8'], api_format: 'anthropic' },
+  siliconflow: { base_url: 'https://api.siliconflow.cn/v1', models: ['BAAI/bge-m3', 'Pro/BAAI/bge-m3', 'Qwen/Qwen2.5-7B-Instruct'], api_format: 'openai_chat' },
+  custom: { base_url: '', models: [], api_format: 'openai_chat' },
 };
 
-export function ModelSelector({ label, value, onChange }: Props) {
+const API_FORMAT_LABELS: Record<string, string> = {
+  openai_chat: 'OpenAI Chat Completions',
+  openai_json: 'OpenAI Responses (JSON)',
+  anthropic: 'Anthropic Messages',
+};
+
+export function ModelSelector({ label, value, onChange, showApiFormat = true }: Props) {
   const [showKey, setShowKey] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [models, setModels] = useState<string[]>([]);
@@ -52,7 +60,7 @@ export function ModelSelector({ label, value, onChange }: Props) {
 
   function handleProviderChange(provider: string) {
     const preset = PROVIDERS[provider] || PROVIDERS.custom;
-    update({ provider, base_url: preset.base_url });
+    update({ provider, base_url: preset.base_url, api_format: preset.api_format });
     setModels(preset.models);
   }
 
@@ -75,6 +83,20 @@ export function ModelSelector({ label, value, onChange }: Props) {
           <option value="custom">Custom</option>
         </select>
       </div>
+      {showApiFormat && (
+        <div>
+          <label className="block text-xs font-medium text-slate-500 mb-1">API Format</label>
+          <select
+            className="w-full border rounded-md px-3 py-2 text-sm"
+            value={value.api_format}
+            onChange={(e) => update({ api_format: e.target.value })}
+          >
+            {Object.entries(API_FORMAT_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+        </div>
+      )}
       {value.provider === 'custom' && (
         <div>
           <label className="block text-xs font-medium text-slate-500 mb-1">Base URL</label>

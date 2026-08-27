@@ -21,16 +21,23 @@ class TestBuildEvaluationModelV2:
             )
 
     def test_builds_with_deepseek_for_deepseek_provider(self):
+        """DeepSeek 官方 API 同样走 CustomOpenAIModel（OpenAI 兼容协议）。
+
+        修复前 DeepSeek 特判走原生 DeepSeekModel（native 路径），其他 provider 走
+        CustomOpenAIModel（元组返回导致 Synthesizer 静默 0 条）。现在统一使用
+        CustomOpenAIModel，所有 provider 行为一致（#2885 适配）。
+        """
         from app.pipeline import build_evaluation_model
         config = ModelConfig(
             provider="deepseek", model_name="deepseek-chat",
             api_key="sk-ds", base_url="https://api.deepseek.com",
         )
-        with patch("app.pipeline.DeepSeekModel") as MockModel:
+        with patch("app.pipeline.CustomOpenAIModel") as MockModel:
             build_evaluation_model(config)
             MockModel.assert_called_once_with(
+                model_name="deepseek-chat",
                 api_key="sk-ds",
-                model="deepseek-chat",
+                base_url="https://api.deepseek.com",
             )
 
 

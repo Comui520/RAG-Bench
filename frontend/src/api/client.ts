@@ -1,6 +1,6 @@
 import type { UploadResponse, EvaluateRequest, EvaluateResponse, TaskStatus, GoldenItem, TaskResult, HistoryItem } from '../types';
 
-const API_BASE = 'http://localhost:8000/api';
+export const API_BASE = (import.meta.env?.VITE_API_BASE as string | undefined) || 'http://localhost:8000/api';
 const DEFAULT_TIMEOUT = 30000;
 
 async function request<T>(path: string, options?: RequestInit & { timeout?: number }): Promise<T> {

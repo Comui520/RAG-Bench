@@ -9,18 +9,24 @@ class TestPipelineGoldensGeneration:
         """Generate goldens from a real .txt document using actual deepeval Synthesizer."""
         import os
         from app.pipeline import build_evaluation_model, build_embedder
-        from app.storage import save_uploaded_file, add_document as save_doc_meta
+        from app.storage import save_uploaded_file
         from app.db import init_db, add_golden, get_goldens
         from app.task_manager import task_manager
         from app.config import CHUNK_SIZE, CHUNK_OVERLAP, MAX_GOLDENS_PER_CONTEXT
+        from app.models import ModelConfig
 
-        if not os.getenv("DEEPSEEK_API_KEY"):
-            pytest.skip("DEEPSEEK_API_KEY not set")
+        if not os.getenv("DEEPSEEK_API_KEY") or not os.getenv("EMBEDDING_API_KEY"):
+            pytest.skip("DEEPSEEK_API_KEY / EMBEDDING_API_KEY not set")
 
         task_id = task_manager.start_task(
             rag_base_url="https://test.example.com",
             rag_api_key="sk-test",
         )
+        # goldens 表依赖 tasks 外键，先建表
+        from app.db import init_db
+        init_db(":memory:")
+        from app.db import create_task
+        create_task("https://test.example.com", "sk-test", task_id=task_id)
 
         fixture_path = os.path.join(
             os.path.dirname(__file__), "fixtures", "test_doc.txt"
@@ -32,8 +38,19 @@ class TestPipelineGoldensGeneration:
         from deepeval.synthesizer import Synthesizer
         from deepeval.synthesizer.config import ContextConstructionConfig
 
-        model = build_evaluation_model()
-        embedder = build_embedder()
+        eval_cfg = ModelConfig(
+            provider="deepseek", model_name="deepseek-chat",
+            api_key=os.getenv("DEEPSEEK_API_KEY"),
+            base_url="https://api.deepseek.com",
+        )
+        model = build_evaluation_model(eval_cfg)
+        embed_cfg = ModelConfig(
+            provider="siliconflow",
+            model_name=os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3"),
+            api_key=os.getenv("EMBEDDING_API_KEY"),
+            base_url=os.getenv("EMBEDDING_BASE_URL", "https://api.siliconflow.cn/v1"),
+        )
+        embedder = build_embedder(embed_cfg)
 
         synthesizer = Synthesizer(async_mode=False, model=model)
         context_config = ContextConstructionConfig(

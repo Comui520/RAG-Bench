@@ -20,8 +20,8 @@ class TestBuildEmbedder:
         )
         from app.pipeline import build_embedder
         embedder = build_embedder(config)
-        from app.embedder import SiliconFlowEmbeddingModel
-        assert isinstance(embedder, SiliconFlowEmbeddingModel)
+        from app.embedder import OpenAICompatibleEmbeddingModel
+        assert isinstance(embedder, OpenAICompatibleEmbeddingModel)
 
 
 class TestBuildTestCase:

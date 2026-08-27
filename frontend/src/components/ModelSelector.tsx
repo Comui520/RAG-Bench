@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Loader2, RefreshCw, Eye, EyeOff } from 'lucide-react';
 
+import { API_BASE } from '../api/client';
+
 export interface ModelConfig {
   provider: string;
   model_name: string;
@@ -36,7 +38,7 @@ export function ModelSelector({ label, value, onChange }: Props) {
     setFetching(true);
     try {
       const res = await fetch(
-        `http://localhost:8000/api/models?base_url=${encodeURIComponent(value.base_url)}&api_key=${encodeURIComponent(value.api_key)}`
+        `${API_BASE}/models?base_url=${encodeURIComponent(value.base_url)}&api_key=${encodeURIComponent(value.api_key)}`
       );
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();

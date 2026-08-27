@@ -61,6 +61,8 @@ export function useStartEvaluation() {
 
 import { useEffect, useState } from 'react';
 
+import { API_BASE } from '../api/client';
+
 export function useTaskSSE(taskId: string | null) {
   const [progress, setProgress] = useState<{
     phase: string; progress: number; message: string; error?: string;
@@ -69,7 +71,7 @@ export function useTaskSSE(taskId: string | null) {
 
   useEffect(() => {
     if (!taskId) return;
-    const es = new EventSource(`http://localhost:8000/api/task/${taskId}/stream`);
+    const es = new EventSource(`${API_BASE.replace(/\/api$/, '')}/api/task/${taskId}/stream`);
     es.addEventListener('progress', (e: MessageEvent) => {
       const data = JSON.parse(e.data);
       setProgress(data);

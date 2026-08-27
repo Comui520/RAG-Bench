@@ -17,7 +17,6 @@ from deepeval.metrics import (
 )
 from deepeval.evaluate import evaluate
 
-from deepeval.models import DeepSeekModel
 from app.custom_model import CustomOpenAIModel
 
 from app.config import (
@@ -42,14 +41,11 @@ from app.task_manager import task_manager, TaskPhase
 def build_evaluation_model(config):
     """Build a deepeval-compatible LLM from a ModelConfig.
 
-    Uses DeepSeekModel for DeepSeek (native Synthesizer support),
-    CustomOpenAIModel for all other providers.
+    统一使用 CustomOpenAIModel（OpenAI 兼容协议），DeepSeek 官方 API 同样兼容。
+    修复前 DeepSeek 走原生 DeepSeekModel（native 路径）、其他 provider 走
+    CustomOpenAIModel（返回元组导致 Synthesizer 静默 0 条）；现在 CustomOpenAIModel
+    返回单值，所有 provider 的 Synthesizer + 指标路径完全一致（#2885 适配）。
     """
-    if config.provider == "deepseek":
-        return DeepSeekModel(
-            api_key=config.api_key,
-            model=config.model_name,
-        )
     return CustomOpenAIModel(
         model_name=config.model_name,
         api_key=config.api_key,
@@ -72,11 +68,16 @@ def build_test_case(
 
 
 def collect_metric_scores(result) -> Tuple[Dict[str, float], bool]:
-    """Extract metric scores from an evaluate() result."""
+    """Extract metric scores from an evaluate() result.
+
+    deepeval 4.0.7 的 evaluate() 返回 EvaluationResult（Pydantic 模型），
+    .test_results 是 List[TestResult]（dataclass，字段 name/success/metrics_data）。
+    """
     scores = {}
     all_passed = True
-    for tr in result.test_results:
-        for md in tr.metrics_data:
+    test_results = getattr(result, "test_results", None) or []
+    for tr in test_results:
+        for md in (tr.metrics_data or []):
             scores[md.name] = md.score
             if not md.success:
                 all_passed = False

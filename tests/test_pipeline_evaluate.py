@@ -13,6 +13,7 @@ class TestPipelineEvaluate:
 
         from app.pipeline import build_evaluation_model, build_test_case, collect_metric_scores
         from app.db import init_db, add_golden, save_eval_result, get_eval_results
+        from app.models import ModelConfig
 
         from deepeval.metrics import (
             AnswerRelevancyMetric,
@@ -20,13 +21,21 @@ class TestPipelineEvaluate:
         )
 
         task_id = "integration-test-001"
+        # 建表：goldens 有 task_id 外键，需先插入 tasks 行
         init_db(":memory:")
+        from app.db import create_task
+        create_task("https://mock-rag.example.com", "sk-mock", task_id=task_id)
 
         gid1 = add_golden(
             task_id, "What is WidgetX?", "WidgetX is a task management app.", '["chunk1"]'
         )
 
-        model = build_evaluation_model()
+        eval_cfg = ModelConfig(
+            provider="deepseek", model_name="deepseek-chat",
+            api_key=os.getenv("DEEPSEEK_API_KEY"),
+            base_url="https://api.deepseek.com",
+        )
+        model = build_evaluation_model(eval_cfg)
         metrics = [
             AnswerRelevancyMetric(model=model),
             FaithfulnessMetric(model=model),
@@ -42,11 +51,11 @@ class TestPipelineEvaluate:
         from deepeval.evaluate import evaluate
         results = evaluate([test_case_1], metrics)
 
-        assert len(results) == 1
-        scores, passed = collect_metric_scores(results[0])
-        assert "AnswerRelevancyMetric" in scores
-        assert "FaithfulnessMetric" in scores
-        assert 0.0 <= scores["AnswerRelevancyMetric"] <= 1.0
+        assert len(results.test_results) == 1
+        scores, passed = collect_metric_scores(results)
+        assert "Answer Relevancy" in scores
+        assert "Faithfulness" in scores
+        assert 0.0 <= scores["Answer Relevancy"] <= 1.0
 
         save_eval_result(
             task_id, gid1,

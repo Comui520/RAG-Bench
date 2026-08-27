@@ -1,12 +1,16 @@
-"""SiliconFlow embedding model wrapped for deepeval compatibility."""
+"""OpenAI-compatible embedding model wrapped for deepeval compatibility.
+
+用户可自定义 base_url / model / api_key（OpenAI、SiliconFlow、本地 Ollama 等
+任何 OpenAI 兼容 /embeddings 端点）。
+"""
 
 from typing import List, Optional, Any
 from langchain_openai import OpenAIEmbeddings
 from deepeval.models import DeepEvalBaseEmbeddingModel
 
 
-class SiliconFlowEmbeddingModel(DeepEvalBaseEmbeddingModel):
-    """OpenAI-compatible embedding model adapter for SiliconFlow / any provider."""
+class OpenAICompatibleEmbeddingModel(DeepEvalBaseEmbeddingModel):
+    """OpenAI-compatible embedding model adapter for any provider."""
 
     def __init__(
         self,
@@ -37,6 +41,7 @@ class SiliconFlowEmbeddingModel(DeepEvalBaseEmbeddingModel):
                 base_url=self._base_url,
                 timeout=self._timeout,
                 max_retries=self._max_retries,
+                check_embedding_ctx_length=False,  # 非 OpenAI 端点按 token 分包会 404
                 **self._extra_kwargs,
             )
         return self._model
@@ -57,8 +62,8 @@ class SiliconFlowEmbeddingModel(DeepEvalBaseEmbeddingModel):
 
 
 def build_embedder(config):
-    """Build a SiliconFlowEmbeddingModel from a ModelConfig."""
-    return SiliconFlowEmbeddingModel(
+    """Build an OpenAICompatibleEmbeddingModel from a ModelConfig."""
+    return OpenAICompatibleEmbeddingModel(
         api_key=config.api_key,
         model_name=config.model_name,
         base_url=config.base_url,

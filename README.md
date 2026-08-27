@@ -17,8 +17,8 @@ B/S-architecture RAG evaluation platform powered by [deepeval](https://github.co
 
 - Python 3.11+ with conda (recommended)
 - Node.js 18+
-- DeepSeek API key (for evaluation model)
-- SiliconFlow API key (for embedding model, or use any OpenAI-compatible embedding API)
+- Any OpenAI-compatible LLM API key (DeepSeek, OpenAI, SiliconFlow, vLLM, Ollama…)
+- Any OpenAI-compatible embedding API key (SiliconFlow BAAI/bge-m3, OpenAI, local Ollama…)
 
 ### Backend
 
@@ -39,6 +39,9 @@ npm run dev
 
 Open `http://localhost:5173`.
 
+> **API base**: the frontend reads `VITE_API_BASE` (default `http://localhost:8000/api`).
+> Create `frontend/.env.local` to override, e.g. `VITE_API_BASE=http://127.0.0.1:8000/api`.
+
 ### Mini RAG (for testing)
 
 ```bash
@@ -49,11 +52,14 @@ python mini_rag.py   # starts on port 8001
 ## Testing
 
 ```bash
-# Backend (75 tests)
-pytest tests/ -v --ignore=tests/test_pipeline_goldens.py --ignore=tests/test_pipeline_evaluate.py
+# Backend (84 tests)
+pytest tests/ -q --ignore=tests/test_pipeline_goldens.py --ignore=tests/test_pipeline_evaluate.py
 
-# Backend integration (requires DEEPSEEK_API_KEY)
-DEEPSEEK_API_KEY=your_key pytest tests/test_pipeline_goldens.py tests/test_pipeline_evaluate.py -v
+# Backend integration (requires DEEPSEEK_API_KEY + EMBEDDING_API_KEY)
+$env:DEEPSEEK_API_KEY=sk-...; $env:EMBEDDING_API_KEY=sk-...
+$env:EMBEDDING_BASE_URL=https://api.siliconflow.cn/v1
+$env:EMBEDDING_MODEL=BAAI/bge-m3
+pytest tests/test_pipeline_goldens.py tests/test_pipeline_evaluate.py -v
 
 # Frontend (22 tests)
 cd frontend && npm test
@@ -97,27 +103,37 @@ Frontend (React + TS)  ←→  Backend (FastAPI)  ←→  deepeval (Synthesizer 
 
 ## Supported Model Providers
 
-| Provider | Evaluation | Embedding | Notes |
-|----------|-----------|-----------|-------|
-| DeepSeek | Native `DeepSeekModel` | — | Full Synthesizer compatibility |
-| OpenAI | `CustomOpenAIModel` | — | Any OpenAI-compatible API |
-| SiliconFlow | `CustomOpenAIModel` | `SiliconFlowEmbeddingModel` | BAAI/bge-m3 recommended |
-| Anthropic | Not supported | — | Non-OpenAI-compatible protocol |
-| Custom | `CustomOpenAIModel` | Any OpenAI-compatible | vLLM, Ollama, etc. |
+**All three model slots (RAG-under-test, evaluation LLM, embedding) are fully user-configurable** in the frontend: provider preset + base URL + API key + model name. Any OpenAI-compatible endpoint works.
+
+| Provider | Evaluation LLM | Embedding | Notes |
+|----------|---------------|-----------|-------|
+| DeepSeek | `CustomOpenAIModel` (OpenAI-compatible) | — | api.deepseek.com |
+| OpenAI | `CustomOpenAIModel` | any | |
+| SiliconFlow | `CustomOpenAIModel` | `OpenAICompatibleEmbeddingModel` | BAAI/bge-m3 recommended |
+| vLLM / Ollama / 本地 | `CustomOpenAIModel` | any OpenAI-compatible | point base_url at the local server |
+| Anthropic | Not supported | — | non-OpenAI protocol |
 
 ## Known Issues
 
-### deepeval `DeepEvalBaseLLM` Synthesizer Incompatibility
+### deepeval `DeepEvalBaseLLM` Synthesizer Incompatibility (#2884 / #2885)
 
-**Status:** Upstream bug in deepeval v4.0.7. [Full bug report](docs/deepeval-bug-report.md).
+**Status:** Upstream bugs in deepeval, still OPEN ([full report](docs/deepeval-bug-report.md)):
 
-Custom `DeepEvalBaseLLM` subclasses cannot be used as `critic_model` in `ContextConstructionConfig` — the Synthesizer returns 0 goldens despite valid model implementations. The internal chunk evaluation code expects return value formats from native model classes (e.g., `DeepSeekModel`) that are not documented in the abstract interface.
+- **#2885**: deepeval's non-native path assumes `generate()` returns a **single value** (`str` or schema instance), but model classes that return `(result, cost)` tuples break `Synthesizer._generate_schema` / `_generate` / `ContextGenerator.evaluate_chunk`, which silently swallow the error and yield **0 goldens**.
+- **#2884**: models with unknown pricing make `calculate_cost()` return `None`, so native path `total_cost += None` raises `TypeError` that is also silently swallowed.
 
-**Workaround:** The platform uses `DeepSeekModel` for the DeepSeek provider and `CustomOpenAIModel` for other providers. See `app/pipeline.py:build_evaluation_model()`.
+**Fix in this repo (no site-packages patching):**
+`app/custom_model.py` `CustomOpenAIModel`:
+- `generate()` / `a_generate()` **always return a single value** — schema instance when `schema` is passed, otherwise `str`. Never a tuple.
+- `calculate_cost()` returns `0.0` instead of `None` when pricing is unknown.
+- Uses `response_format={"type":"json_object"}` with automatic fallback on `BadRequestError` (DeepSeek requires the word "json" in the prompt), plus a second fallback that appends a JSON instruction suffix, so Synthesizer prompts (which ask for JSON) work even when the model would otherwise return plain text.
+- Declares `supports_json_mode()=True` / `supports_structured_outputs()=False`.
+
+All providers (DeepSeek included — its API is OpenAI-compatible) go through the **same** `CustomOpenAIModel`, so behavior is consistent everywhere.
 
 ### `deepseek-v4-flash` Cost Calculation
 
-**Status:** Fixed in deepeval v4.0.7 — model is registered and works with `DeepSeekModel`. However `calculate_cost()` still returns `None` for some edge cases. Using `deepseek-chat` is a reliable fallback.
+deepeval v4.0.7 registers `deepseek-v4-flash`/`v4-pro` pricing, but `calculate_cost()` can still return `None` on some paths. Our `CustomOpenAIModel.calculate_cost()` never returns `None`, so this is fully covered.
 
 ### Windows Path Escaping
 
@@ -133,8 +149,8 @@ rag-llm-test/
 │   ├── models.py             # Pydantic request/response schemas
 │   ├── db.py                 # SQLite CRUD operations
 │   ├── storage.py            # File storage (./data/{task_id}/)
-│   ├── embedder.py           # SiliconFlow / OpenAI-compatible embedding adapter
-│   ├── custom_model.py       # CustomOpenAIModel (DeepEvalBaseLLM subclass)
+│   ├── embedder.py           # OpenAI-compatible embedding adapter (any /embeddings endpoint)
+│   ├── custom_model.py       # CustomOpenAIModel (DeepEvalBaseLLM subclass, single-value contract)
 │   ├── rag_client.py         # OpenAI-compatible RAG API client
 │   ├── task_manager.py       # In-memory task state + SSE event queues
 │   ├── pipeline.py           # Core evaluation pipeline
@@ -148,16 +164,17 @@ rag-llm-test/
 │   ├── test_task_manager.py  # Task state machine tests
 │   ├── test_pipeline.py      # Pipeline unit tests
 │   ├── test_pipeline_v2.py   # Pipeline v2 (dynamic models) tests
-│   ├── test_custom_model.py  # CustomOpenAIModel tests (9 tests, no API key)
+│   ├── test_custom_model.py  # CustomOpenAIModel tests (no API key)
+│   ├── test_custom_model_synthesizer.py  # Synthesizer + 5 metrics offline
 │   ├── test_api_*.py         # API integration tests (6 files)
 │   ├── test_pipeline_error.py    # Pipeline error handling
-│   ├── test_pipeline_goldens.py  # Goldens generation integration
-│   └── test_pipeline_evaluate.py # Evaluation integration
+│   ├── test_pipeline_goldens.py  # Goldens generation integration (real API)
+│   └── test_pipeline_evaluate.py # Evaluation integration (real API)
 ├── frontend/
 │   └── src/
 │       ├── pages/            # ConfigPage, GoldensPage, ProgressPage, ResultsPage
 │       ├── components/       # ModelSelector, FileUploader, ProgressTracker, etc.
-│       ├── api/client.ts     # Fetch wrappers with timeout/abort
+│       ├── api/client.ts     # Fetch wrappers with timeout/abort (VITE_API_BASE)
 │       ├── hooks/useApi.ts   # TanStack Query + SSE hooks
 │       ├── types/index.ts    # Shared TypeScript types
 │       ├── mocks/            # MSW handlers + fixtures

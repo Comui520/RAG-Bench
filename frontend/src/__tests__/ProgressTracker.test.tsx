@@ -8,8 +8,8 @@ describe('ProgressTracker', () => {
     renderWithProviders(
       <ProgressTracker phase="GENERATING_GOLDENS" progress={0.3} status="GENERATING_GOLDENS" />
     );
-    expect(screen.getByText('Generating Goldens')).toBeInTheDocument();
-    expect(screen.getByText('Running Evaluation')).toBeInTheDocument();
+    expect(screen.getByText('生成测试样本')).toBeInTheDocument();
+    expect(screen.getByText('运行评估')).toBeInTheDocument();
   });
 
   it('shows progress percentage', () => {

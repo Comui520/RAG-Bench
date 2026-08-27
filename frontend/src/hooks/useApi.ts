@@ -49,6 +49,38 @@ export function useConfirmGoldens() {
   });
 }
 
+export function useUpdateGolden(taskId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { goldenId: number; data: Partial<Pick<GoldenItem, 'input' | 'expected_output' | 'context'>> }) =>
+      api.updateGolden(vars.goldenId, vars.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['goldens', taskId] });
+    },
+  });
+}
+
+export function useDeleteGolden(taskId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (goldenId: number) => api.deleteGolden(goldenId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['goldens', taskId] });
+    },
+  });
+}
+
+export function useAddGolden(taskId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { input: string; expected_output: string; context?: string | null }) =>
+      api.addGolden(taskId!, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['goldens', taskId] });
+    },
+  });
+}
+
 export function useStartEvaluation() {
   const qc = useQueryClient();
   return useMutation({

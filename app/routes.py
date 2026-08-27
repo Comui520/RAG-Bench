@@ -3,12 +3,13 @@
 import os
 import json as json_mod
 import asyncio as _asyncio
-from typing import List
+from typing import List, Optional
 
 import httpx
 import asyncio
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from app.db import (
     init_db,
@@ -18,6 +19,9 @@ from app.db import (
     add_document,
     get_documents,
     get_goldens,
+    update_golden as update_golden_db,
+    delete_golden as delete_golden_db,
+    add_golden as add_golden_db,
     get_eval_results,
     get_all_tasks,
 )
@@ -214,6 +218,46 @@ async def confirm_goldens(task_id: str):
 
     task_manager.signal_confirmation(task_id)
     return {"status": "confirmed"}
+
+
+class GoldenUpdate(BaseModel):
+    """测试样本编辑请求体。"""
+    input: Optional[str] = None
+    expected_output: Optional[str] = None
+    context: Optional[str] = None
+
+
+class GoldenCreate(BaseModel):
+    """手动添加测试样本请求体。"""
+    input: str
+    expected_output: str
+    context: Optional[str] = None
+
+
+@router.put("/goldens/{golden_id}")
+async def update_golden(golden_id: int, req: GoldenUpdate):
+    """编辑测试样本（问题 / 期望答案 / 来源片段）。"""
+    if not update_golden_db(golden_id, req.input, req.expected_output, req.context):
+        raise HTTPException(status_code=404, detail="Golden not found")
+    return {"status": "updated"}
+
+
+@router.delete("/goldens/{golden_id}")
+async def delete_golden(golden_id: int):
+    """删除测试样本（关联评估结果级联删除）。"""
+    if not delete_golden_db(golden_id):
+        raise HTTPException(status_code=404, detail="Golden not found")
+    return {"status": "deleted"}
+
+
+@router.post("/goldens/{task_id}")
+async def add_manual_golden(task_id: str, req: GoldenCreate):
+    """手动添加测试样本。"""
+    state = task_manager.get_state(task_id)
+    if state is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    golden_id = add_golden_db(task_id, req.input, req.expected_output, req.context)
+    return {"id": golden_id}
 
 
 @router.get("/results/{task_id}")

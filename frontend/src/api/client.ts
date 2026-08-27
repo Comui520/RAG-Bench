@@ -42,6 +42,12 @@ export const api = {
     request<EvaluateResponse>('/evaluate', { method: 'POST', body: JSON.stringify(data) }),
   getTask: (taskId: string) => request<TaskStatus>(`/task/${taskId}`),
   getGoldens: (taskId: string) => request<GoldenItem[]>(`/goldens/${taskId}`),
+  updateGolden: (goldenId: number, data: Partial<Pick<GoldenItem, 'input' | 'expected_output' | 'context'>>) =>
+    request(`/goldens/${goldenId}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteGolden: (goldenId: number) =>
+    request(`/goldens/${goldenId}`, { method: 'DELETE' }),
+  addGolden: (taskId: string, data: { input: string; expected_output: string; context?: string | null }) =>
+    request<{ id: number }>(`/goldens/${taskId}`, { method: 'POST', body: JSON.stringify(data) }),
   confirmGoldens: (taskId: string) =>
     request<{ status: string }>(`/goldens/${taskId}/confirm`, { method: 'POST' }),
   getResults: (taskId: string) => request<TaskResult>(`/results/${taskId}`),

@@ -6,6 +6,6 @@ import { ProgressPage } from '../pages/ProgressPage';
 describe('ProgressPage v2', () => {
   it('shows connecting state initially', () => {
     renderWithProviders(<ProgressPage />);
-    expect(screen.getByText(/connecting/i)).toBeInTheDocument();
+    expect(screen.getByText(/正在连接评估进度/i)).toBeInTheDocument();
   });
 });

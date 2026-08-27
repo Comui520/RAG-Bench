@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RagConfigForm, type FullConfig } from '../components/RagConfigForm';
 import { FileUploader } from '../components/FileUploader';
+import { StepIndicator } from '../components/StepIndicator';
 import { api } from '../api/client';
 import { useStartEvaluation } from '../hooks/useApi';
 import type { UploadedFile } from '../types';
@@ -46,7 +47,11 @@ export function ConfigPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold">RAG Evaluation</h2>
+      <StepIndicator current={1} />
+      <h2 className="text-2xl font-bold">配置与上传</h2>
+      <p className="text-sm text-slate-500 -mt-4">
+        配置被测服务与模型，上传知识库文档。配置会自动保存，下次自动填入。
+      </p>
       <RagConfigForm onSubmit={setFullConfig} />
       <FileUploader onUpload={handleUpload} files={files} disabled={uploading} />
       <button
@@ -57,7 +62,7 @@ export function ConfigPage() {
         onClick={handleStart}
       >
         {startEval.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-        Start Evaluation
+        开始评估
       </button>
     </div>
   );

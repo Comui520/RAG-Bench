@@ -170,6 +170,40 @@ def add_golden(task_id: str, input_text: str, expected_output: str, context: Opt
     return cur.lastrowid
 
 
+def update_golden(
+    golden_id: int,
+    input_text: Optional[str] = None,
+    expected_output: Optional[str] = None,
+    context: Optional[str] = None,
+) -> bool:
+    """Update a golden. Only provided fields are changed; context=None is kept
+    unless `clear_context=True`-like semantics are needed (not exposed).
+    Returns True if a row was updated."""
+    row = get_db().execute(
+        "SELECT * FROM goldens WHERE id = ?", (golden_id,)
+    ).fetchone()
+    if row is None:
+        return False
+    new_input = input_text if input_text is not None else row["input"]
+    new_output = (
+        expected_output if expected_output is not None else row["expected_output"]
+    )
+    new_context = context if context is not None else row["context"]
+    get_db().execute(
+        "UPDATE goldens SET input = ?, expected_output = ?, context = ? WHERE id = ?",
+        (new_input, new_output, new_context, golden_id),
+    )
+    get_db().commit()
+    return True
+
+
+def delete_golden(golden_id: int) -> bool:
+    """Delete a golden (eval_results cascade via FK). Returns True if deleted."""
+    cur = get_db().execute("DELETE FROM goldens WHERE id = ?", (golden_id,))
+    get_db().commit()
+    return cur.rowcount > 0
+
+
 def get_goldens(task_id: str) -> List[Dict[str, Any]]:
     rows = get_db().execute(
         "SELECT * FROM goldens WHERE task_id = ? ORDER BY id", (task_id,)

@@ -26,9 +26,9 @@ describe('User Flows', () => {
     await user.type(keyInputs[1], 'sk-eval');
     await user.type(keyInputs[2], 'sk-embed');
 
-    await user.click(screen.getByRole('button', { name: /save/i }));
+    await user.click(screen.getByRole('button', { name: /保存配置|已保存/i }));
     // After saving config, the start button should appear
-    expect(screen.getByRole('button', { name: /start evaluation/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /开始评估/i })).toBeInTheDocument();
   });
 
   it('Results page shows metric scores', async () => {
@@ -45,7 +45,7 @@ describe('User Flows', () => {
     renderWithQueryClient(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/COMPLETED/)).toBeInTheDocument();
+      expect(screen.getByText(/已完成/)).toBeInTheDocument();
     });
   });
 });

@@ -1,11 +1,11 @@
 import { CheckCircle2, Loader2, Circle, XCircle } from 'lucide-react';
 
 const PHASES = [
-  { key: 'UPLOADING', label: 'Uploading' },
-  { key: 'GENERATING_GOLDENS', label: 'Generating Goldens' },
-  { key: 'AWAITING_CONFIRM', label: 'Review Goldens' },
-  { key: 'RUNNING_EVAL', label: 'Running Evaluation' },
-  { key: 'COMPLETED', label: 'Completed' },
+  { key: 'UPLOADING', label: '上传文档' },
+  { key: 'GENERATING_GOLDENS', label: '生成测试样本' },
+  { key: 'AWAITING_CONFIRM', label: '审核测试样本' },
+  { key: 'RUNNING_EVAL', label: '运行评估' },
+  { key: 'COMPLETED', label: '完成' },
 ];
 
 interface Props {
@@ -54,7 +54,7 @@ export function ProgressTracker({ phase, progress, status, message }: Props) {
               <span className={`text-sm ${i <= currentIdx ? 'text-slate-900 font-medium' : 'text-slate-400'}`}>
                 {p.label}
               </span>
-              {i === currentIdx && <span className="text-xs font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Current</span>}
+              {i === currentIdx && <span className="text-xs font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded">当前</span>}
             </div>
           );
         })}

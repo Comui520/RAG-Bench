@@ -1,7 +1,11 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useHistory } from '../hooks/useApi';
-import { History, Loader2, ArrowRight, Clock3, Server, Tag } from 'lucide-react';
+import { useHistory, useDeleteTask } from '../hooks/useApi';
+import { History, Loader2, ArrowRight, Clock3, Server, Tag, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ExpandableText } from '../components/ExpandableText';
+import { toast } from 'sonner';
+
+const PAGE_SIZE = 8;
 
 function statusColor(status: string): string {
   switch (status) {
@@ -36,6 +40,30 @@ function formatTime(iso?: string | null): string {
 export function HistoryPage() {
   const navigate = useNavigate();
   const { data: history, isLoading } = useHistory();
+  const deleteTask = useDeleteTask();
+  const [page, setPage] = useState(1);
+
+  const total = history?.length ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const visibleHistory = useMemo(
+    () => (history ?? []).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [history, page],
+  );
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
+
+  async function handleDelete(taskId: string, taskName?: string | null) {
+    const label = taskName || '这条评估记录';
+    if (!window.confirm(`确定删除“${label}”吗？\n相关文档、测试样本和评估结果都会被删除。`)) return;
+    try {
+      await deleteTask.mutateAsync(taskId);
+      toast.success('评估记录已删除');
+    } catch {
+      toast.error('删除失败，请重试');
+    }
+  }
 
   if (isLoading) {
     return (
@@ -64,77 +92,123 @@ export function HistoryPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">历史记录</h2>
-        <p className="text-sm text-slate-500 mt-1">查看和追溯往期的评估任务</p>
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">历史记录</h2>
+          <p className="text-sm text-slate-500 mt-1">查看和追溯往期的评估任务</p>
+        </div>
+        <span className="text-xs text-slate-400">共 {total} 条记录</span>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[1120px] table-fixed text-sm">
-          <colgroup>
-            <col className="w-[18%]" />
-            <col className="w-[14%]" />
-            <col className="w-[11%]" />
-            <col className="w-[21%]" />
-            <col className="w-[16%]" />
-            <col className="w-[16%]" />
-            <col className="w-[14%]" />
-          </colgroup>
-          <thead>
-            <tr className="border-b bg-slate-50">
-              <th className="p-3 text-left font-semibold text-slate-600">任务名称</th>
-              <th className="p-3 text-left font-semibold text-slate-600">任务 ID</th>
-              <th className="p-3 text-left font-semibold text-slate-600">状态</th>
-              <th className="p-3 text-left font-semibold text-slate-600">被测服务</th>
-              <th className="p-3 text-left font-semibold text-slate-600">创建时间</th>
-              <th className="p-3 text-left font-semibold text-slate-600">完成时间</th>
-              <th className="sticky right-0 z-10 bg-slate-50 p-3 text-right font-semibold text-slate-600 shadow-[-5px_0_10px_-10px_rgba(15,23,42,0.4)]">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((item) => (
-              <tr key={item.task_id} className="border-b last:border-0 hover:bg-slate-50 transition-colors align-top">
-                <td className="p-3 align-middle">
-                  <div className="flex items-start gap-1.5 min-w-0">
-                    <Tag className="w-3.5 h-3.5 text-indigo-400 mt-0.5 shrink-0" />
-                    <ExpandableText text={item.task_name || '未命名评估'} threshold={24} lines={2} className="font-medium text-slate-800" />
+      <div className="space-y-3">
+        {visibleHistory.map((item) => {
+          const canView = ['COMPLETED', 'FAILED'].includes(item.status);
+          const canDelete = canView;
+          return (
+            <article key={item.task_id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start gap-2">
+                    <Tag className="mt-0.5 h-4 w-4 shrink-0 text-indigo-400" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ExpandableText text={item.task_name || '未命名评估'} threshold={36} lines={2} className="font-semibold text-slate-900" />
+                        <span className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(item.status)}`}>
+                          {statusLabel[item.status] ?? item.status}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-start gap-1 text-xs text-slate-400">
+                        <span className="shrink-0">任务 ID：</span>
+                        <ExpandableText text={item.task_id} threshold={18} lines={1} className="font-mono" />
+                      </div>
+                    </div>
                   </div>
-                </td>
-                <td className="p-3 align-middle">
-                  <ExpandableText text={item.task_id} threshold={14} lines={1} className="font-mono text-xs text-slate-500" />
-                </td>
-                <td className="p-3 align-middle">
-                  <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(item.status)}`}>
-                    {statusLabel[item.status] ?? item.status}
-                  </span>
-                </td>
-                <td className="p-3 align-middle">
-                  <div className="flex items-start gap-1 min-w-0 text-slate-600">
-                    <Server className="w-3 h-3 text-slate-400 mt-0.5 shrink-0" />
-                    <ExpandableText text={item.rag_base_url || '—'} threshold={32} lines={2} />
+
+                  <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="min-w-0">
+                      <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">被测服务</p>
+                      <div className="flex items-start gap-1 text-sm text-slate-600">
+                        <Server className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <ExpandableText text={item.rag_base_url || '—'} threshold={36} lines={2} />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">创建时间</p>
+                      <p className="flex items-start gap-1 text-sm text-slate-600">
+                        <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span>{formatTime(item.created_at)}</span>
+                      </p>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">完成时间</p>
+                      <p className="flex items-start gap-1 text-sm text-slate-600">
+                        <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span>{formatTime(item.completed_at)}</span>
+                      </p>
+                    </div>
                   </div>
-                </td>
-                <td className="p-3 align-middle whitespace-nowrap text-slate-500">
-                  <span className="inline-flex items-center gap-1">
-                    <Clock3 className="w-3 h-3 text-slate-400 shrink-0" />
-                    {formatTime(item.created_at)}
-                  </span>
-                </td>
-                <td className="p-3 align-middle whitespace-nowrap text-slate-500">{formatTime(item.completed_at)}</td>
-                <td className="sticky right-0 z-10 bg-white p-3 text-right align-middle shadow-[-5px_0_10px_-10px_rgba(15,23,42,0.4)] group-hover:bg-slate-50">
+                </div>
+
+                <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-slate-100 pt-3 lg:w-40 lg:flex-col lg:items-stretch lg:border-t-0 lg:border-l lg:pl-4 lg:pt-0">
                   <button
                     onClick={() => navigate(`/task/${item.task_id}/results`)}
-                    disabled={!['COMPLETED', 'FAILED'].includes(item.status)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                    disabled={!canView}
+                    className="inline-flex min-h-9 flex-1 items-center justify-center gap-1 rounded-lg bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-40 lg:flex-none"
                   >
-                    查看结果 <ArrowRight className="w-3 h-3" />
+                    查看结果 <ArrowRight className="h-3.5 w-3.5" />
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  <button
+                    onClick={() => handleDelete(item.task_id, item.task_name)}
+                    disabled={!canDelete || deleteTask.isPending}
+                    className="inline-flex min-h-9 items-center justify-center gap-1 rounded-lg px-3 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> 删除记录
+                  </button>
+                </div>
+              </div>
+            </article>
+          );
+        })}
       </div>
+
+      {pageCount > 1 && (
+        <nav className="mt-6 flex flex-wrap items-center justify-center gap-2" aria-label="历史记录分页">
+          <button
+            type="button"
+            aria-label="上一页"
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            disabled={page === 1}
+            className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeft className="h-4 w-4" /> 上一页
+          </button>
+          {Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => (
+            <button
+              key={pageNumber}
+              type="button"
+              aria-label={`第 ${pageNumber} 页`}
+              aria-current={pageNumber === page ? 'page' : undefined}
+              onClick={() => setPage(pageNumber)}
+              className={`h-9 min-w-9 rounded-lg px-2 text-xs font-medium transition-colors ${
+                pageNumber === page
+                  ? 'bg-indigo-600 text-white'
+                  : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {pageNumber}
+            </button>
+          ))}
+          <button
+            type="button"
+            aria-label="下一页"
+            onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
+            disabled={page === pageCount}
+            className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            下一页 <ChevronRight className="h-4 w-4" />
+          </button>
+        </nav>
+      )}
     </div>
   );
 }

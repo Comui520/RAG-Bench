@@ -52,5 +52,7 @@ export const api = {
     request<{ status: string }>(`/goldens/${taskId}/confirm`, { method: 'POST' }),
   getResults: (taskId: string) => request<TaskResult>(`/results/${taskId}`),
   getHistory: () => request<HistoryItem[]>('/history'),
+  deleteTask: (taskId: string) =>
+    request<{ status: string }>(`/tasks/${taskId}`, { method: 'DELETE' }),
   fetchModels,
 };

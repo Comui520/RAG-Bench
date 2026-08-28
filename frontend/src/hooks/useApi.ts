@@ -39,6 +39,16 @@ export function useHistory() {
   });
 }
 
+export function useDeleteTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) => api.deleteTask(taskId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['history'] });
+    },
+  });
+}
+
 export function useConfirmGoldens() {
   const qc = useQueryClient();
   return useMutation({

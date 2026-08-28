@@ -23,10 +23,11 @@ from app.db import (
     delete_golden as delete_golden_db,
     add_golden as add_golden_db,
     set_task_name,
+    delete_task as delete_task_db,
     get_eval_results,
     get_all_tasks,
 )
-from app.storage import save_uploaded_file, ensure_task_dir
+from app.storage import save_uploaded_file, ensure_task_dir, delete_task_data
 from app.models import (
     EvaluateRequest,
     ModelConfig,
@@ -307,6 +308,20 @@ async def get_results(task_id: str):
         overall_scores=overall,
         details=[d.model_dump() for d in details],
     ).model_dump()
+
+
+@router.delete("/tasks/{task_id}")
+async def delete_task(task_id: str):
+    """Delete a completed/failed task and its local files."""
+    state = task_manager.get_state(task_id)
+    if state and state.get("status") not in ("COMPLETED", "FAILED"):
+        raise HTTPException(status_code=409, detail="Cannot delete a running task")
+    if get_task(task_id) is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    delete_task_db(task_id)
+    delete_task_data(task_id)
+    task_manager.remove_task(task_id)
+    return {"status": "deleted"}
 
 
 @router.get("/history")

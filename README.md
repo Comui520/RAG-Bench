@@ -85,7 +85,8 @@ Frontend (React + TS)  ←→  Backend (FastAPI)  ←→  deepeval (Synthesizer 
 | `GET` | `/api/goldens/{id}` | List generated goldens |
 | `POST` | `/api/goldens/{id}/confirm` | Confirm goldens, proceed to evaluation |
 | `GET` | `/api/results/{id}` | Get evaluation results |
-| `GET` | `/api/history` | List past evaluation tasks |
+| `GET` | `/api/history` | List past evaluation tasks (includes optional task name) |
+| `DELETE` | `/api/tasks/{id}` | Delete a completed/failed task and its local data |
 
 ### Evaluation Pipeline
 

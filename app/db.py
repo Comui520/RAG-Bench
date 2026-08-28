@@ -159,6 +159,13 @@ def update_task_status(
     get_db().commit()
 
 
+def delete_task(task_id: str) -> bool:
+    """Delete a task and all database children via foreign-key cascades."""
+    cur = get_db().execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    get_db().commit()
+    return cur.rowcount > 0
+
+
 def get_all_tasks() -> List[Dict[str, Any]]:
     rows = get_db().execute(
         "SELECT * FROM tasks ORDER BY created_at DESC"

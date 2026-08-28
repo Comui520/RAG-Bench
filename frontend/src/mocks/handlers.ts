@@ -38,4 +38,8 @@ export const handlers = [
   http.get(`${BASE}/history`, () =>
     HttpResponse.json(mockHistory)
   ),
+
+  http.delete(`${BASE}/tasks/:taskId`, () =>
+    HttpResponse.json({ status: 'deleted' })
+  ),
 ];

@@ -95,6 +95,12 @@ class TaskManager:
     def cleanup_queue(self, task_id: str) -> None:
         self._queues.pop(task_id, None)
 
+    def remove_task(self, task_id: str) -> None:
+        """Remove in-memory state after a terminal task is deleted."""
+        self._tasks.pop(task_id, None)
+        self._events.pop(task_id, None)
+        self._queues.pop(task_id, None)
+
 
 # Global singleton
 task_manager = TaskManager()

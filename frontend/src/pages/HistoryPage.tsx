@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useHistory } from '../hooks/useApi';
 import { History, Loader2, ArrowRight, Clock3, Server } from 'lucide-react';
+import { ExpandableText } from '../components/ExpandableText';
 
 function statusColor(status: string): string {
   switch (status) {
@@ -24,11 +25,11 @@ const statusLabel: Record<string, string> = {
 };
 
 function formatTime(iso?: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '未记录';
   try {
     return new Date(iso).toLocaleString('zh-CN', { hour12: false });
   } catch {
-    return '—';
+    return '未记录';
   }
 }
 
@@ -68,41 +69,55 @@ export function HistoryPage() {
         <p className="text-sm text-slate-500 mt-1">查看和追溯往期的评估任务</p>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-        <table className="w-full text-sm">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-x-auto">
+        <table className="w-full min-w-[900px] table-fixed text-sm">
+          <colgroup>
+            <col className="w-[16%]" />
+            <col className="w-[12%]" />
+            <col className="w-[23%]" />
+            <col className="w-[18%]" />
+            <col className="w-[18%]" />
+            <col className="w-[13%]" />
+          </colgroup>
           <thead>
             <tr className="border-b bg-slate-50">
-              <th className="text-left p-3 font-semibold text-slate-600">任务 ID</th>
-              <th className="text-left p-3 font-semibold text-slate-600">状态</th>
-              <th className="text-left p-3 font-semibold text-slate-600">被测服务</th>
-              <th className="text-left p-3 font-semibold text-slate-600">创建时间</th>
-              <th className="text-left p-3 font-semibold text-slate-600">完成时间</th>
-              <th className="text-right p-3 font-semibold text-slate-600">操作</th>
+              <th className="p-3 text-left font-semibold text-slate-600">任务 ID</th>
+              <th className="p-3 text-left font-semibold text-slate-600">状态</th>
+              <th className="p-3 text-left font-semibold text-slate-600">被测服务</th>
+              <th className="p-3 text-left font-semibold text-slate-600">创建时间</th>
+              <th className="p-3 text-left font-semibold text-slate-600">完成时间</th>
+              <th className="p-3 text-right font-semibold text-slate-600">操作</th>
             </tr>
           </thead>
           <tbody>
             {history.map((item) => (
-              <tr key={item.task_id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
-                <td className="p-3 font-mono text-slate-700">{item.task_id.slice(0, 12)}…</td>
-                <td className="p-3">
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(item.status)}`}>
+              <tr key={item.task_id} className="border-b last:border-0 hover:bg-slate-50 transition-colors align-top">
+                <td className="p-3 align-middle">
+                  <ExpandableText text={item.task_id} threshold={14} lines={1} className="font-mono text-xs" />
+                </td>
+                <td className="p-3 align-middle">
+                  <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(item.status)}`}>
                     {statusLabel[item.status] ?? item.status}
                   </span>
                 </td>
-                <td className="p-3 text-slate-600 max-w-40 truncate flex items-center gap-1">
-                  <Server className="w-3 h-3 text-slate-400" />
-                  {item.rag_base_url || '—'}
+                <td className="p-3 align-middle">
+                  <div className="flex items-start gap-1 min-w-0 text-slate-600">
+                    <Server className="w-3 h-3 text-slate-400 mt-0.5 shrink-0" />
+                    <ExpandableText text={item.rag_base_url || '—'} threshold={32} lines={1} />
+                  </div>
                 </td>
-                <td className="p-3 text-slate-500 flex items-center gap-1">
-                  <Clock3 className="w-3 h-3 text-slate-400" />
-                  {formatTime(item.created_at)}
+                <td className="p-3 align-middle whitespace-nowrap text-slate-500">
+                  <span className="inline-flex items-center gap-1">
+                    <Clock3 className="w-3 h-3 text-slate-400 shrink-0" />
+                    {formatTime(item.created_at)}
+                  </span>
                 </td>
-                <td className="p-3 text-slate-500">{formatTime(item.completed_at)}</td>
-                <td className="p-3 text-right">
+                <td className="p-3 align-middle whitespace-nowrap text-slate-500">{formatTime(item.completed_at)}</td>
+                <td className="p-3 align-middle text-right">
                   <button
                     onClick={() => navigate(`/task/${item.task_id}/results`)}
                     disabled={!['COMPLETED', 'FAILED'].includes(item.status)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                   >
                     查看结果 <ArrowRight className="w-3 h-3" />
                   </button>

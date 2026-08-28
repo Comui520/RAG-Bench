@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pencil, Trash2, Check, X, FileText } from 'lucide-react';
+import { ExpandableText } from './ExpandableText';
 
 interface Props {
   index: number;
@@ -77,7 +78,10 @@ export function GoldenCard({ index, input, expectedOutput, context, onSave, onDe
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">#{index + 1}</span>
-          <span className="text-sm font-medium text-slate-900">Q: {input}</span>
+          <div className="min-w-0 flex-1 text-sm font-medium text-slate-900">
+            <span className="mr-1 text-slate-400">问题：</span>
+            <ExpandableText text={input} threshold={110} lines={2} />
+          </div>
         </div>
         <div className="flex gap-1 shrink-0">
           {onSave && (
@@ -94,7 +98,7 @@ export function GoldenCard({ index, input, expectedOutput, context, onSave, onDe
       </div>
       <div>
         <span className="text-xs font-medium text-slate-500">期望答案：</span>
-        <p className="text-sm text-slate-700 mt-0.5">{expectedOutput}</p>
+        <ExpandableText text={expectedOutput} threshold={140} lines={3} className="mt-0.5 text-slate-700" />
       </div>
       {parsedContext.length > 0 && (
         <div>
@@ -103,9 +107,7 @@ export function GoldenCard({ index, input, expectedOutput, context, onSave, onDe
           </span>
           <div className="mt-1 space-y-1">
             {parsedContext.slice(0, 3).map((c, i) => (
-              <p key={i} className="text-xs text-slate-500 bg-slate-50 p-1.5 rounded truncate">
-                {c}
-              </p>
+              <ExpandableText key={i} text={c} threshold={90} lines={2} className="rounded bg-slate-50 p-1.5 text-xs text-slate-500" />
             ))}
           </div>
         </div>

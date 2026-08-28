@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useHistory } from '../hooks/useApi';
 import { ClipboardList, History, PlusCircle, Clock3 } from 'lucide-react';
+import { ExpandableText } from './ExpandableText';
 
 export function Layout() {
   const { data: history } = useHistory();
@@ -81,7 +82,7 @@ export function Layout() {
                   to={`/task/${item.task_id}/results`}
                   className="block px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200 rounded-lg flex items-center justify-between gap-2"
                 >
-                  <span className="truncate">{item.task_id.slice(0, 8)}…</span>
+                  <ExpandableText text={item.task_id} threshold={14} lines={1} className="text-xs text-slate-400" />
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${statusColor(item.status)}`}>
                     {statusLabel[item.status] ?? item.status}
                   </span>

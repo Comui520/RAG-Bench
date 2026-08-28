@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Upload, FileText, X } from 'lucide-react';
 import type { UploadedFile } from '../types';
+import { ExpandableText } from './ExpandableText';
 
 interface Props {
   onUpload: (files: File[]) => Promise<void>;
@@ -65,7 +66,7 @@ export function FileUploader({ onUpload, onRemove, files = [], disabled }: Props
           {files.map((f) => (
             <div key={f.id} className="flex items-center gap-2 text-sm text-slate-700 group">
               <FileText className="w-4 h-4 text-slate-400" />
-              <span className="flex-1 truncate">{f.filename}</span>
+              <ExpandableText text={f.filename} threshold={28} lines={1} className="flex-1 text-slate-700" />
               <span className="text-xs text-slate-400">{(f.file_size / 1024).toFixed(1)} KB</span>
               {onRemove && (
                 <button onClick={() => onRemove(f.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity p-1" aria-label="Remove file">

@@ -1,6 +1,20 @@
 # RAG Evaluation Platform
 
-B/S-architecture RAG evaluation platform powered by [deepeval](https://github.com/confident-ai/deepeval). Upload knowledge base documents, configure your RAG API endpoint, and the platform generates evaluation goldens, runs a battery of metrics, and displays results in a dashboard.
+A browser-based RAG evaluation platform powered by [deepeval](https://github.com/confident-ai/deepeval). It guides users through four steps: configure models and upload documents, review generated test samples, run five RAG metrics, and inspect or export the results.
+
+## Features
+
+- Four-step guided workflow with Chinese user-facing copy
+- User-configurable RAG endpoint, evaluation LLM, embedding model, base URLs, models, and API keys
+- Evaluation LLM adapters for OpenAI Chat Completions, OpenAI Responses, and Anthropic Messages
+- Automatic test-sample generation from uploaded documents
+- Editable, removable, and manually creatable test samples
+- RAG response context extraction from `message.contexts`, `message.citations`, or top-level `contexts` / `context`
+- Real-time progress through SSE
+- Named tasks, paginated history cards, task deletion, and CSV / JSON result export
+- Local browser configuration memory for repeated evaluations
+
+> Configuration memory uses browser `localStorage` and includes API keys when saved. Use the platform only in a trusted local browser profile, and clear the saved configuration before sharing the computer.
 
 ## Tech Stack
 
@@ -8,7 +22,7 @@ B/S-architecture RAG evaluation platform powered by [deepeval](https://github.co
 |-------|-----------|
 | Backend | FastAPI + SQLite + httpx |
 | Evaluation Engine | deepeval (official, v4.0.7) |
-| Frontend | React 18 + TypeScript + Tailwind CSS + TanStack Query + Recharts |
+| Frontend | React 19 + TypeScript + Tailwind CSS + TanStack Query + Recharts |
 | Notifications | sonner (toast) |
 
 ## Quick Start
@@ -17,21 +31,21 @@ B/S-architecture RAG evaluation platform powered by [deepeval](https://github.co
 
 - Python 3.11+ with conda (recommended)
 - Node.js 18+
-- Any OpenAI-compatible LLM API key (DeepSeek, OpenAI, SiliconFlow, vLLM, Ollama…)
-- Any OpenAI-compatible embedding API key (SiliconFlow BAAI/bge-m3, OpenAI, local Ollama…)
+- Evaluation LLM endpoint using OpenAI Chat Completions, OpenAI Responses, or Anthropic Messages
+- OpenAI-compatible embedding API key (SiliconFlow BAAI/bge-m3, OpenAI, local Ollama, etc.)
 
 ### Backend
 
-```bash
+```powershell
 conda create -n rag-eval python=3.11 -y
 conda activate rag-eval
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 ### Frontend
 
-```bash
+```powershell
 cd frontend
 npm install
 npm run dev
@@ -42,27 +56,40 @@ Open `http://localhost:5173`.
 > **API base**: the frontend reads `VITE_API_BASE` (default `http://localhost:8000/api`).
 > Create `frontend/.env.local` to override, e.g. `VITE_API_BASE=http://127.0.0.1:8000/api`.
 
-### Mini RAG (for testing)
+### Mini RAG (optional demo service)
 
-```bash
-export DEEPSEEK_API_KEY=your_key
-python mini_rag.py   # starts on port 8001
+```powershell
+$env:DEEPSEEK_API_KEY = "your-key"
+python mini_rag.py  # starts on port 8001
 ```
+
+Configure the tested RAG service as:
+
+```text
+Base URL: http://127.0.0.1:8001
+API Key:  sk-local
+Model:    deepseek-v4-flash
+```
+
+The mini RAG ignores the incoming placeholder key, but it must contain ASCII characters because it is sent in an HTTP `Authorization` header.
 
 ## Testing
 
-```bash
-# Backend (84 tests)
-pytest tests/ -q --ignore=tests/test_pipeline_goldens.py --ignore=tests/test_pipeline_evaluate.py
+```powershell
+# Backend offline suite (106 passed in the latest verified run)
+python -m pytest tests\ -q --ignore=tests\test_pipeline_goldens.py --ignore=tests\test_pipeline_evaluate.py
 
-# Backend integration (requires DEEPSEEK_API_KEY + EMBEDDING_API_KEY)
-$env:DEEPSEEK_API_KEY=sk-...; $env:EMBEDDING_API_KEY=sk-...
-$env:EMBEDDING_BASE_URL=https://api.siliconflow.cn/v1
-$env:EMBEDDING_MODEL=BAAI/bge-m3
-pytest tests/test_pipeline_goldens.py tests/test_pipeline_evaluate.py -v
+# Backend real-API integration (requires both keys)
+$env:DEEPSEEK_API_KEY = "sk-..."
+$env:EMBEDDING_API_KEY = "sk-..."
+$env:EMBEDDING_BASE_URL = "https://api.siliconflow.cn/v1"
+$env:EMBEDDING_MODEL = "BAAI/bge-m3"
+python -m pytest tests\test_pipeline_goldens.py tests\test_pipeline_evaluate.py -v
 
-# Frontend (22 tests)
-cd frontend && npm test
+# Frontend (25 passed in the latest verified run)
+cd frontend
+npm test
+npm run build
 ```
 
 ## Architecture
@@ -82,20 +109,33 @@ Frontend (React + TS)  ←→  Backend (FastAPI)  ←→  deepeval (Synthesizer 
 | `GET` | `/api/task/{id}` | Get task status |
 | `GET` | `/api/task/{id}/stream` | SSE real-time progress |
 | `GET` | `/api/models` | Proxy to fetch available models |
-| `GET` | `/api/goldens/{id}` | List generated goldens |
-| `POST` | `/api/goldens/{id}/confirm` | Confirm goldens, proceed to evaluation |
+| `GET` | `/api/goldens/{id}` | List generated test samples |
+| `POST` | `/api/goldens/{task_id}` | Manually add a test sample |
+| `PUT` | `/api/goldens/{golden_id}` | Edit a test sample |
+| `DELETE` | `/api/goldens/{golden_id}` | Delete a test sample |
+| `POST` | `/api/goldens/{id}/confirm` | Confirm test samples and proceed to evaluation |
 | `GET` | `/api/results/{id}` | Get evaluation results |
 | `GET` | `/api/history` | List past evaluation tasks (includes optional task name) |
 | `DELETE` | `/api/tasks/{id}` | Delete a completed/failed task and its local data |
 
+### Tested RAG Response Contract
+
+The tested RAG endpoint is called through OpenAI-style `POST {base_url}/chat/completions`. The answer is read from `choices[0].message.content`. Retrieval evidence is discovered from the first supported field:
+
+1. `choices[0].message.contexts`
+2. `choices[0].message.citations` (`text` or `content` per citation)
+3. top-level `contexts`
+4. top-level `context`
+
+Retrieval metrics require these evidence chunks. If none are found, the platform emits a warning because Contextual Relevancy, Recall, and Precision cannot be evaluated correctly.
+
 ### Evaluation Pipeline
 
-1. Upload knowledge base documents
-2. Configure RAG API, evaluation model, and embedding model
-3. deepeval Synthesizer generates goldens (Q&A pairs)
-4. Review and confirm goldens
-5. Pipeline queries RAG API for each golden, runs 5 metrics
-6. Results dashboard with per-question breakdown
+1. Name the evaluation, configure the RAG API and models, and upload knowledge-base documents
+2. deepeval Synthesizer generates test samples (question/expected-answer pairs)
+3. Review, edit, remove, or manually add test samples
+4. Confirm the samples and run five metrics against the tested RAG service
+5. Inspect per-sample results, export CSV / JSON, or return later through paginated history
 
 ### Metrics
 
@@ -187,13 +227,14 @@ rag-llm-test/
 │   └── test_pipeline_evaluate.py # Evaluation integration (real API)
 ├── frontend/
 │   └── src/
-│       ├── pages/            # ConfigPage, GoldensPage, ProgressPage, ResultsPage
-│       ├── components/       # ModelSelector, FileUploader, ProgressTracker, etc.
+│       ├── pages/            # Config, sample review, progress, results, paginated history
+│       ├── components/       # ModelSelector, StepIndicator, ExpandableText, charts, etc.
 │       ├── api/client.ts     # Fetch wrappers with timeout/abort (VITE_API_BASE)
 │       ├── hooks/useApi.ts   # TanStack Query + SSE hooks
+│       ├── utils/storage.ts  # Local browser configuration memory
 │       ├── types/index.ts    # Shared TypeScript types
 │       ├── mocks/            # MSW handlers + fixtures
-│       └── __tests__/        # 10 test files, 22 tests
+│       └── __tests__/        # 12 test files, 25 tests
 ├── mini_rag.py               # Test RAG service (port 8001)
 ├── scripts/
 │   ├── smoke_real_eval.py    # Real-API smoke (DeepSeek + SiliconFlow)

@@ -6,7 +6,7 @@
 
 ## 演示视频
 
-[▶ 观看 RAG-Bench 完整使用演示（MP4，58 MB）](https://github.com/Comui520/RAG-Bench/releases/download/v0.1.0/rag-bench-demo.mp4)
+[▶ 查看演示 Release](https://github.com/Comui520/RAG-Bench/releases/tag/v0.1.0) · [下载完整演示视频（MP4，58 MB）](https://github.com/Comui520/RAG-Bench/releases/download/v0.1.0/rag-bench-demo.mp4)
 
 视频展示了模型配置、文档上传、测试样本审核、实时评估进度、结果分析与导出，以及历史任务管理的完整流程。
 

@@ -6,7 +6,7 @@ A browser-based RAG evaluation platform powered by [deepeval](https://github.com
 
 ## Demo Video
 
-[▶ Watch the complete RAG-Bench walkthrough (MP4, 58 MB)](https://github.com/Comui520/RAG-Bench/releases/download/v0.1.0/rag-bench-demo.mp4)
+[▶ Open the demo release](https://github.com/Comui520/RAG-Bench/releases/tag/v0.1.0) · [Download the walkthrough (MP4, 58 MB)](https://github.com/Comui520/RAG-Bench/releases/download/v0.1.0/rag-bench-demo.mp4)
 
 The video demonstrates model configuration, document upload, generated test-sample review, live evaluation progress, result inspection, export, and history management.
 

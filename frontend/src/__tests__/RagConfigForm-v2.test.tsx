@@ -24,6 +24,7 @@ describe('RagConfigForm v2', () => {
     renderWithProviders(<RagConfigForm onSubmit={onSubmit} />);
     const user = userEvent.setup();
     const inputs = screen.getAllByPlaceholderText(/https:\/\/your-rag/i);
+    await user.type(screen.getByPlaceholderText('例如：知识库第一轮回归测试'), 'WidgetX 回归测试');
     await user.type(inputs[0], 'https://rag.test.com');
     const keys = screen.getAllByPlaceholderText('sk-...');
     await user.type(keys[0], 'sk-rag');
@@ -33,6 +34,7 @@ describe('RagConfigForm v2', () => {
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       rag_base_url: 'https://rag.test.com',
       rag_api_key: 'sk-rag',
+      task_name: 'WidgetX 回归测试',
       eval_model: expect.objectContaining({ api_key: 'sk-eval' }),
       embed_model: expect.objectContaining({ api_key: 'sk-embed' }),
     }));

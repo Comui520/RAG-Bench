@@ -22,6 +22,7 @@ from app.db import (
     update_golden as update_golden_db,
     delete_golden as delete_golden_db,
     add_golden as add_golden_db,
+    set_task_name,
     get_eval_results,
     get_all_tasks,
 )
@@ -116,6 +117,7 @@ async def start_evaluation(req: EvaluateRequest):
 
         state["rag_base_url"] = req.rag_base_url
         state["rag_api_key"] = req.rag_api_key
+        set_task_name(task_id, req.task_name)
         # Sync status to DB; ignore if DB is already in terminal state
         try:
             update_task_status(task_id, state["status"])
@@ -123,7 +125,7 @@ async def start_evaluation(req: EvaluateRequest):
             pass
     else:
         task_id = task_manager.start_task(req.rag_base_url, req.rag_api_key)
-        create_task(req.rag_base_url, req.rag_api_key, task_id=task_id)
+        create_task(req.rag_base_url, req.rag_api_key, task_id=task_id, task_name=req.task_name)
 
     # Use defaults if model configs not provided
     eval_config = req.eval_model or ModelConfig.model_construct(
@@ -313,6 +315,7 @@ async def get_history():
     return [
         HistoryItem(
             task_id=t["id"],
+            task_name=t.get("task_name"),
             status=t["status"],
             rag_base_url=t["rag_base_url"],
             created_at=t.get("created_at"),

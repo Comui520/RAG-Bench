@@ -14,6 +14,8 @@ class ModelConfig(BaseModel):
 
 
 class EvaluateRequest(BaseModel):
+    # User-facing task label
+    task_name: Optional[str] = Field(default=None, max_length=120, description="Optional evaluation name")
     # RAG service under test
     rag_base_url: str = Field(..., min_length=1, description="RAG service base URL")
     rag_api_key: str = Field(..., min_length=1, description="RAG service API key")
@@ -69,6 +71,7 @@ class TaskResult(BaseModel):
 
 class HistoryItem(BaseModel):
     task_id: str
+    task_name: Optional[str] = None
     status: str
     rag_base_url: str
     created_at: Optional[str] = None

@@ -4,6 +4,7 @@ import { saveConfig, loadSavedConfig, clearSavedConfig } from '../utils/storage'
 import { History, Trash2 } from 'lucide-react';
 
 export interface FullConfig {
+  task_name: string;
   rag_base_url: string;
   rag_api_key: string;
   rag_model: string;
@@ -26,6 +27,7 @@ const DEFAULT_EMBED: ModelConfig = {
 };
 
 export function RagConfigForm({ onSubmit }: Props) {
+  const [taskName, setTaskName] = useState('');
   const [ragUrl, setRagUrl] = useState('');
   const [ragKey, setRagKey] = useState('');
   const [ragModel, setRagModel] = useState('deepseek-chat');
@@ -40,6 +42,7 @@ export function RagConfigForm({ onSubmit }: Props) {
     const savedConfig = loadSavedConfig();
     if (savedConfig) {
       setRagUrl(savedConfig.rag_base_url || '');
+      setTaskName(savedConfig.task_name || '');
       setRagKey(savedConfig.rag_api_key || '');
       setRagModel(savedConfig.rag_model || 'deepseek-chat');
       setEvalModel(savedConfig.eval_model ?? DEFAULT_EVAL);
@@ -51,6 +54,7 @@ export function RagConfigForm({ onSubmit }: Props) {
   function handleClear() {
     clearSavedConfig();
     setHasSaved(false);
+    setTaskName('');
     setRagUrl('');
     setRagKey('');
     setRagModel('deepseek-chat');
@@ -70,6 +74,7 @@ export function RagConfigForm({ onSubmit }: Props) {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     const config: FullConfig = {
+      task_name: taskName.trim(),
       rag_base_url: ragUrl.trim(), rag_api_key: ragKey.trim(),
       rag_model: ragModel.trim() || 'deepseek-chat',
       eval_model: evalModel, embed_model: embedModel,
@@ -94,6 +99,13 @@ export function RagConfigForm({ onSubmit }: Props) {
           </button>
         </div>
       )}
+
+      {/* 任务名称 */}
+      <div className="border rounded-lg bg-white p-4 space-y-2">
+        <label className="block text-sm font-semibold text-slate-700" htmlFor="task-name">任务名称 <span className="font-normal text-slate-400">（可选）</span></label>
+        <input id="task-name" className="w-full border rounded-md px-3 py-2 text-sm" placeholder="例如：知识库第一轮回归测试" value={taskName} onChange={(e) => setTaskName(e.target.value)} />
+        <p className="text-xs text-slate-400">给这次评估起个名字，之后可以在历史记录里快速找到。</p>
+      </div>
 
       {/* RAG Service Card */}
       <div className="border rounded-lg bg-white p-4 space-y-3">

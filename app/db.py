@@ -49,6 +49,7 @@ def init_db(db_path: Optional[str] = None) -> sqlite3.Connection:
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS tasks (
             id            TEXT PRIMARY KEY,
+            task_name     TEXT,
             rag_base_url  TEXT NOT NULL,
             rag_api_key   TEXT NOT NULL,
             status        TEXT NOT NULL DEFAULT 'UPLOADING',
@@ -84,20 +85,40 @@ def init_db(db_path: Optional[str] = None) -> sqlite3.Connection:
             evaluated_at      TEXT NOT NULL
         );
     """)
+    # Existing rag_eval.db files predate task_name. Keep them usable without
+    # requiring a destructive migration.
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(tasks)").fetchall()}
+    if "task_name" not in columns:
+        conn.execute("ALTER TABLE tasks ADD COLUMN task_name TEXT")
     conn.commit()
     return conn
 
 
-def create_task(rag_base_url: str, rag_api_key: str, task_id: Optional[str] = None) -> str:
+def create_task(
+    rag_base_url: str,
+    rag_api_key: str,
+    task_id: Optional[str] = None,
+    task_name: Optional[str] = None,
+) -> str:
     if task_id is None:
         task_id = uuid.uuid4().hex
     now = datetime.now(timezone.utc).isoformat()
     get_db().execute(
-        "INSERT OR IGNORE INTO tasks (id, rag_base_url, rag_api_key, status, created_at) VALUES (?, ?, ?, 'UPLOADING', ?)",
-        (task_id, rag_base_url, rag_api_key, now),
+        "INSERT OR IGNORE INTO tasks (id, task_name, rag_base_url, rag_api_key, status, created_at) VALUES (?, ?, ?, ?, 'UPLOADING', ?)",
+        (task_id, task_name, rag_base_url, rag_api_key, now),
     )
     get_db().commit()
     return task_id
+
+
+def set_task_name(task_id: str, task_name: Optional[str]) -> bool:
+    """Set an optional user-facing task name."""
+    cur = get_db().execute(
+        "UPDATE tasks SET task_name = ? WHERE id = ?",
+        ((task_name or "").strip() or None, task_id),
+    )
+    get_db().commit()
+    return cur.rowcount > 0
 
 
 def get_task(task_id: str) -> Optional[Dict[str, Any]]:

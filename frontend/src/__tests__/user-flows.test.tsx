@@ -41,11 +41,15 @@ describe('User Flows', () => {
     expect(screen.getByText('92.0%')).toBeInTheDocument();
   });
 
-  it('History sidebar shows past tasks', async () => {
+  it('History page shows past tasks', async () => {
     renderWithQueryClient(<App />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('link', { name: '历史记录' }));
 
     await waitFor(() => {
       expect(screen.getByText(/已完成/)).toBeInTheDocument();
     });
+    expect(screen.getByText('完成时间')).toBeInTheDocument();
+    expect(screen.getByText('WidgetX 回归测试')).toBeInTheDocument();
   });
 });

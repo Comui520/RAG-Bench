@@ -67,6 +67,7 @@ export const mockResults: TaskResult = {
 export const mockHistory: HistoryItem[] = [
   {
     task_id: MOCK_TASK_ID,
+    task_name: 'WidgetX 回归测试',
     status: 'COMPLETED',
     rag_base_url: 'https://rag.example.com/v1',
     created_at: '2026-07-08T00:00:00Z',

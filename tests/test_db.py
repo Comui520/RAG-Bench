@@ -17,6 +17,7 @@ from app.db import (
     save_eval_result,
     get_eval_results,
     get_all_tasks,
+    set_task_name,
     VALID_STATUSES,
     TERMINAL_STATUSES,
 )
@@ -59,6 +60,16 @@ class TestTaskCRUD:
 
     def test_get_all_tasks_returns_empty_list(self, db_conn):
         assert get_all_tasks() == []
+
+    def test_task_name_is_persisted_and_editable(self, db_conn):
+        task_id = create_task(
+            rag_base_url="http://x.com",
+            rag_api_key="k",
+            task_name="第一轮回归测试",
+        )
+        assert get_task(task_id)["task_name"] == "第一轮回归测试"
+        assert set_task_name(task_id, "第二轮回归测试") is True
+        assert get_task(task_id)["task_name"] == "第二轮回归测试"
 
 
 class TestStatusTransitions:

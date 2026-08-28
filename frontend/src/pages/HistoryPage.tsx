@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useHistory } from '../hooks/useApi';
-import { History, Loader2, ArrowRight, Clock3, Server } from 'lucide-react';
+import { History, Loader2, ArrowRight, Clock3, Server, Tag } from 'lucide-react';
 import { ExpandableText } from '../components/ExpandableText';
 
 function statusColor(status: string): string {
@@ -69,31 +69,39 @@ export function HistoryPage() {
         <p className="text-sm text-slate-500 mt-1">查看和追溯往期的评估任务</p>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-x-auto">
-        <table className="w-full min-w-[900px] table-fixed text-sm">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full min-w-[1120px] table-fixed text-sm">
           <colgroup>
+            <col className="w-[18%]" />
+            <col className="w-[14%]" />
+            <col className="w-[11%]" />
+            <col className="w-[21%]" />
             <col className="w-[16%]" />
-            <col className="w-[12%]" />
-            <col className="w-[23%]" />
-            <col className="w-[18%]" />
-            <col className="w-[18%]" />
-            <col className="w-[13%]" />
+            <col className="w-[16%]" />
+            <col className="w-[14%]" />
           </colgroup>
           <thead>
             <tr className="border-b bg-slate-50">
+              <th className="p-3 text-left font-semibold text-slate-600">任务名称</th>
               <th className="p-3 text-left font-semibold text-slate-600">任务 ID</th>
               <th className="p-3 text-left font-semibold text-slate-600">状态</th>
               <th className="p-3 text-left font-semibold text-slate-600">被测服务</th>
               <th className="p-3 text-left font-semibold text-slate-600">创建时间</th>
               <th className="p-3 text-left font-semibold text-slate-600">完成时间</th>
-              <th className="p-3 text-right font-semibold text-slate-600">操作</th>
+              <th className="sticky right-0 z-10 bg-slate-50 p-3 text-right font-semibold text-slate-600 shadow-[-5px_0_10px_-10px_rgba(15,23,42,0.4)]">操作</th>
             </tr>
           </thead>
           <tbody>
             {history.map((item) => (
               <tr key={item.task_id} className="border-b last:border-0 hover:bg-slate-50 transition-colors align-top">
                 <td className="p-3 align-middle">
-                  <ExpandableText text={item.task_id} threshold={14} lines={1} className="font-mono text-xs" />
+                  <div className="flex items-start gap-1.5 min-w-0">
+                    <Tag className="w-3.5 h-3.5 text-indigo-400 mt-0.5 shrink-0" />
+                    <ExpandableText text={item.task_name || '未命名评估'} threshold={24} lines={2} className="font-medium text-slate-800" />
+                  </div>
+                </td>
+                <td className="p-3 align-middle">
+                  <ExpandableText text={item.task_id} threshold={14} lines={1} className="font-mono text-xs text-slate-500" />
                 </td>
                 <td className="p-3 align-middle">
                   <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(item.status)}`}>
@@ -103,7 +111,7 @@ export function HistoryPage() {
                 <td className="p-3 align-middle">
                   <div className="flex items-start gap-1 min-w-0 text-slate-600">
                     <Server className="w-3 h-3 text-slate-400 mt-0.5 shrink-0" />
-                    <ExpandableText text={item.rag_base_url || '—'} threshold={32} lines={1} />
+                    <ExpandableText text={item.rag_base_url || '—'} threshold={32} lines={2} />
                   </div>
                 </td>
                 <td className="p-3 align-middle whitespace-nowrap text-slate-500">
@@ -113,7 +121,7 @@ export function HistoryPage() {
                   </span>
                 </td>
                 <td className="p-3 align-middle whitespace-nowrap text-slate-500">{formatTime(item.completed_at)}</td>
-                <td className="p-3 align-middle text-right">
+                <td className="sticky right-0 z-10 bg-white p-3 text-right align-middle shadow-[-5px_0_10px_-10px_rgba(15,23,42,0.4)] group-hover:bg-slate-50">
                   <button
                     onClick={() => navigate(`/task/${item.task_id}/results`)}
                     disabled={!['COMPLETED', 'FAILED'].includes(item.status)}

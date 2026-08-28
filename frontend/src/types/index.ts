@@ -18,6 +18,7 @@ export interface UploadResponse {
 }
 
 export interface EvaluateRequest {
+  task_name?: string;
   rag_base_url: string;
   rag_api_key: string;
   rag_model: string;
@@ -73,6 +74,7 @@ export interface TaskResult {
 
 export interface HistoryItem {
   task_id: string;
+  task_name?: string | null;
   status: string;
   rag_base_url: string;
   created_at: string | null;

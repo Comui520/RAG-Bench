@@ -1,5 +1,7 @@
 # RAG Evaluation Platform
 
+**English** | [简体中文](README.zh-CN.md)
+
 A browser-based RAG evaluation platform powered by [deepeval](https://github.com/confident-ai/deepeval). It guides users through four steps: configure models and upload documents, review generated test samples, run five RAG metrics, and inspect or export the results.
 
 ## Features

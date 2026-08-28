@@ -18,3 +18,4 @@ frontend/node_modules/
 .coverage
 htmlcov/
 uvicorn*.log
+*.mp4

@@ -4,6 +4,12 @@
 
 这是一个基于 [deepeval](https://github.com/confident-ai/deepeval) 的浏览器端 RAG 自动化测评平台。用户按照“配置与上传 → 审核测试样本 → 运行评估 → 查看结果”四个步骤，即可完成知识库文档测试样本生成、RAG 服务调用、五项指标评分、结果分析与导出。
 
+## 演示视频
+
+[▶ 观看 RAG-Bench 完整使用演示（MP4，58 MB）](https://github.com/Comui520/RAG-Bench/releases/download/v0.1.0/rag-bench-demo.mp4)
+
+视频展示了模型配置、文档上传、测试样本审核、实时评估进度、结果分析与导出，以及历史任务管理的完整流程。
+
 ## 主要功能
 
 - 全中文四步引导式工作流

@@ -4,6 +4,12 @@
 
 A browser-based RAG evaluation platform powered by [deepeval](https://github.com/confident-ai/deepeval). It guides users through four steps: configure models and upload documents, review generated test samples, run five RAG metrics, and inspect or export the results.
 
+## Demo Video
+
+[▶ Watch the complete RAG-Bench walkthrough (MP4, 58 MB)](https://github.com/Comui520/RAG-Bench/releases/download/v0.1.0/rag-bench-demo.mp4)
+
+The video demonstrates model configuration, document upload, generated test-sample review, live evaluation progress, result inspection, export, and history management.
+
 ## Features
 
 - Four-step guided workflow with Chinese user-facing copy
